@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>SmartBid · Administration</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #2563eb;
+      --danger: #ef4444;
+      --ok: #10b981;
+      --border: #1f2937;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; background: var(--bg); color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      height: 100%;
+    }
+    a { color: inherit; text-decoration: none; }
+    header {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(17,24,39,0.8); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .brand { font-weight: 700; letter-spacing: .3px; }
+    nav { display: flex; gap: 12px; flex-wrap: wrap; }
+    .nav-link {
+      padding: 8px 10px; border-radius: 8px; color: var(--muted);
+    }
+    .nav-link.active { color: var(--text); background: #0b1220; }
+    main { padding: 20px 0 40px; }
+    .panel {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+    }
+    .muted { color: var(--muted); }
+    .hidden { display: none !important; }
+    footer {
+      border-top: 1px solid var(--border); color: var(--muted); font-size: 12px;
+      padding: 12px 0; margin-top: 24px;
+    }
+    .right { display: flex; align-items: center; gap: 8px; }
+    button.btn {
+      background: var(--accent); color: white; border: none; border-radius: 8px;
+      padding: 8px 12px; cursor: pointer;
+    }
+    button.btn.outline {
+      background: transparent; color: var(--text); border: 1px solid var(--border);
+    }
+
+    /* Responsive enhancements */
+    .menu-btn { display: none; }
+
+    /* Make tables scrollable by default */
+    .panel { overflow-x: auto; }
+
+    /* Inputs full-width inside forms */
+    form input, form select, form textarea, form button { max-width: 100%; }
+    form input, form select, form textarea { width: 100%; }
+
+    /* Prevent nav links from wrapping awkwardly */
+    nav .nav-link { white-space: nowrap; }
+
+    /* Mobile-first layout */
+    @media (max-width: 768px) {
+      .topbar { flex-wrap: wrap; gap: 8px; }
+      .menu-btn { display: inline-block; }
+      nav {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        gap: 6px;
+        padding: 8px 0;
+      }
+      nav.open { display: flex; }
+      .right { width: 100%; justify-content: flex-end; }
+      .nav-link { padding: 10px 12px; }
+      .container { padding: 0 12px; }
+      /* Override grid responsiveness from app.js runtime style */
+      main .grid { display: grid; grid-template-columns: 1fr !important; gap: 12px; }
+    }
+
+    @media (min-width: 640px) and (max-width: 1023px) {
+      main .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    }
+
+    @media (min-width: 1024px) {
+      main .grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container topbar">
+      <div class="brand">SmartBid · Administration</div>
+      <button id="menu-btn" class="btn outline menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="primary-nav">☰</button>
+      <nav id="primary-nav" aria-label="Primary">
+        <a class="nav-link" href="#/dashboard">Tableau de bord</a>
+        <a class="nav-link" href="#/products">Produits</a>
+        <a class="nav-link" href="#/auctions">Enchères</a>
+        <a class="nav-link" href="#/drafts">Brouillons</a>
+        <a class="nav-link" href="#/rep-drafts">Brouillons représentants</a>
+        <a class="nav-link" href="#/my-bidders">Mes enchérisseurs</a>
+        <a class="nav-link" href="#/bids">Offres</a>
+        <a class="nav-link" href="#/users">Utilisateurs</a>
+      </nav>
+      <div class="right">
+        <span id="user-badge" class="muted">Invité</span>
+        <button id="login-btn" class="btn outline" onclick="location.hash = '#/login'">Connexion</button>
+        <button id="logout-btn" class="btn hidden">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="app" class="panel">
+      <h2>Chargement…</h2>
+      <p class="muted">Veuillez patienter pendant l’initialisation de la console d’administration.</p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      SmartBid &middot; Console d’administration
+    </div>
+  </footer>
+
+  <script>
+    // Lightweight nav active state (will be superseded by app.js router)
+    function setActiveNav() {
+      const h = location.hash || '#/dashboard';
+      document.querySelectorAll('nav .nav-link').forEach(a => {
+        if (a.getAttribute('href') === h) a.classList.add('active'); else a.classList.remove('active');
+      });
+    }
+    function closeMenu() {
+      const nav = document.getElementById('primary-nav');
+      const btn = document.getElementById('menu-btn');
+      if (nav) nav.classList.remove('open');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+    function toggleMenu() {
+      const nav = document.getElementById('primary-nav');
+      const btn = document.getElementById('menu-btn');
+      if (!nav || !btn) return;
+      const opened = nav.classList.toggle('open');
+      btn.setAttribute('aria-expanded', opened ? 'true' : 'false');
+    }
+    window.addEventListener('hashchange', () => { setActiveNav(); closeMenu(); });
+    window.addEventListener('resize', () => { if (window.innerWidth > 768) closeMenu(); });
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.matches('#menu-btn')) { toggleMenu(); }
+      if (e.target && e.target.matches('nav .nav-link')) { closeMenu(); }
+    });
+    setActiveNav();
+  </script>
+  <script type="module" src="/admin/assets/app.js"></script>
+</body>
+</html>
