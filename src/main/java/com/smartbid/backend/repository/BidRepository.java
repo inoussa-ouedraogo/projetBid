@@ -38,4 +38,8 @@ List<Bid> findByAuction_IdOrderByAmountAsc(Long auctionId);
 // pratique pour récupérer directement la dernière mise d'un user
 Optional<Bid> findTopByAuction_IdAndUser_EmailOrderByCreatedAtDesc(Long auctionId, String email);
 
+    List<Long> findDistinctAuctionIdsByUser_Email(String email);
+
+    long countByAuction_Id(Long auctionId);
+
 }

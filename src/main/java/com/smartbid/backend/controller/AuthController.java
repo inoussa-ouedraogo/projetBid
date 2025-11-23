@@ -1,6 +1,7 @@
 package com.smartbid.backend.controller;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -261,6 +262,45 @@ public class AuthController {
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         ));
+    }
+
+    // ================================
+    // Suppression / anonymisation du compte
+    // ================================
+    @DeleteMapping("/me")
+    public ResponseEntity<?> deleteAccount() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Non authentifié");
+        }
+
+        String email;
+        var principal = auth.getPrincipal();
+        if (principal instanceof org.springframework.security.core.userdetails.User u) {
+            email = u.getUsername();
+        } else {
+            email = auth.getName();
+        }
+
+        var userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Utilisateur introuvable");
+        }
+
+        var user = userOpt.get();
+        String archivedEmail = user.getEmail() + ".deleted." + System.currentTimeMillis();
+        user.setEmail(archivedEmail);
+        user.setStatus(false);
+        user.setIsVerified(false);
+        user.setName("Compte supprime");
+        user.setPhone(null);
+        user.setRegistrationToken(null);
+        user.setTokenExpiry(null);
+        user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setUpdatedAt(Instant.now());
+        userRepository.save(user);
+
+        return ResponseEntity.noContent().build();
     }
 
     // ================================

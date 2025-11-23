@@ -70,7 +70,7 @@ async function loadMe() {
 
 function renderHeader() {
   if (state.me) {
-    userBadgeEl.textContent = `${state.me.name || state.me.email} · ${state.me.role}`;
+    userBadgeEl.textContent = `${state.me.name || state.me.email} Â· ${state.me.role}`;
     loginBtn.classList.add('hidden');
     logoutBtn.classList.remove('hidden');
   } else {
@@ -137,7 +137,7 @@ async function ViewLogin() {
     h('label', { for: emailId }, 'Email'),
     h('input', { id: emailId, type: 'email', required: true, placeholder: 'admin@example.com' }),
     h('label', { for: passId }, 'Password'),
-    h('input', { id: passId, type: 'password', required: true, placeholder: '••••••••' }),
+    h('input', { id: passId, type: 'password', required: true, placeholder: 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' }),
     h('div', { class: 'muted', style: 'margin:8px 0 0' }, 'Use your admin credentials.'),
     h('button', { type: 'submit', class: 'btn', style: 'margin-top:12px' }, 'Login'),
   ]);
@@ -146,7 +146,7 @@ async function ViewLogin() {
     const email = form.querySelector('#' + emailId).value.trim();
     const password = form.querySelector('#' + passId).value;
     const btn = form.querySelector('button[type="submit"]');
-    btn.disabled = true; btn.textContent = 'Signing in…';
+    btn.disabled = true; btn.textContent = 'Signing inâ€¦';
     try {
       await login(email, password);
       renderHeaderRoleAware();
@@ -163,17 +163,66 @@ async function ViewLogin() {
 
 async function ViewDashboard() {
   appEl.innerHTML = '';
-  const wrap = h('div', {}, [
-    h('h2', {}, 'Dashboard'),
-    h('p', { class: 'muted' }, 'Overview of key metrics.'),
-    h('div', { class: 'grid' }, [
-      h('div', { class: 'panel' }, [h('div', {}, 'Products'), h('div', { id: 'kpi-products' }, '—')]),
-      h('div', { class: 'panel' }, [h('div', {}, 'Auctions'), h('div', { id: 'kpi-auctions' }, '—')]),
-      h('div', { class: 'panel' }, [h('div', {}, 'Running'), h('div', { id: 'kpi-running' }, '—')]),
-      h('div', { class: 'panel' }, [h('div', {}, 'Closed'), h('div', { id: 'kpi-closed' }, '—')]),
+
+  const wrap = h('div', { class: 'dashboard' }, [
+    // Titre + mini infos en haut
+    h('div', { class: 'dashboard-header' }, [
+      h('div', {}, [
+        h('h1', { class: 'page-title' }, 'Dashboard'),
+        h('p', { class: 'muted' }, 'Overview of key metrics.')
+      ]),
+      h('div', { class: 'dashboard-header-right' }, [
+        h('div', { class: 'pill' }, 'SmartBid · Admin'),
+        h('span', {}, new Date().toLocaleDateString())
+      ])
+    ]),
+
+    // Cartes KPI
+    h('div', { class: 'kpi-grid' }, [
+      h('div', { class: 'kpi-card highlight' }, [
+        h('div', { class: 'kpi-dot' }, '🎉'),
+        h('div', { class: 'kpi-label' }, 'Summary'),
+        h('div', { class: 'kpi-value', id: 'kpi-auctions' }, '—'),
+        h('div', { class: 'kpi-sub' }, 'Total auctions'),
+        h('div', { class: 'kpi-trend up', id: 'kpi-auctions-extra' }, '+0 this month')
+      ]),
+      h('div', { class: 'kpi-card' }, [
+        h('div', { class: 'kpi-dot' }, '📦'),
+        h('div', { class: 'kpi-label' }, 'Products'),
+        h('div', { class: 'kpi-value', id: 'kpi-products' }, '—'),
+        h('div', { class: 'kpi-sub' }, 'Products in catalogue')
+      ]),
+      h('div', { class: 'kpi-card' }, [
+        h('div', { class: 'kpi-dot' }, '🟢'),
+        h('div', { class: 'kpi-label' }, 'Running'),
+        h('div', { class: 'kpi-value', id: 'kpi-running' }, '—'),
+        h('div', { class: 'kpi-sub' }, 'Auctions currently live')
+      ]),
+      h('div', { class: 'kpi-card' }, [
+        h('div', { class: 'kpi-dot' }, '✅'),
+        h('div', { class: 'kpi-label' }, 'Closed'),
+        h('div', { class: 'kpi-value', id: 'kpi-closed' }, '—'),
+        h('div', { class: 'kpi-sub' }, 'Finished auctions')
+      ])
+    ]),
+
+    // Ligne du bas (placeholders pour graphs / stats)
+    h('div', { class: 'dashboard-bottom-grid' }, [
+      h('div', { class: 'panel soft' }, [
+        h('h3', {}, 'Activity'),
+        h('p', { class: 'muted' }, 'Quick view of system activity. (You can plug real charts here plus tard.)'),
+        h('div', { class: 'placeholder-chart' }, 'Chart placeholder')
+      ]),
+      h('div', { class: 'panel' }, [
+        h('h3', {}, 'Notes'),
+        h('p', { class: 'muted' }, 'Use this area for alerts, upcoming auctions, or any summary you want.')
+      ])
     ])
   ]);
+
   appEl.appendChild(wrap);
+
+  // Chargement des vraies valeurs
   try {
     const [prodRes, aucRes] = await Promise.all([
       apiFetch('/api/products'),
@@ -183,14 +232,19 @@ async function ViewDashboard() {
     const auctions = aucRes.ok ? await aucRes.json() : [];
     const running = auctions.filter(a => a.status === 'RUNNING').length;
     const closed = auctions.filter(a => a.status === 'CLOSED').length;
+
     document.getElementById('kpi-products').textContent = String(products.length);
     document.getElementById('kpi-auctions').textContent = String(auctions.length);
     document.getElementById('kpi-running').textContent = String(running);
     document.getElementById('kpi-closed').textContent = String(closed);
+
+    const extra = document.getElementById('kpi-auctions-extra');
+    if (extra) extra.textContent = `${auctions.length} total · ${running} running`;
   } catch (e) {
     console.error(e);
   }
 }
+
 
 async function ViewComingSoon(title) {
   appEl.innerHTML = '';
@@ -251,7 +305,7 @@ const translations = {
   'Email': 'E-mail',
   'Password': 'Mot de passe',
   'Use your admin credentials.': 'Utilisez vos identifiants administrateur.',
-  'Signing in…': 'Connexion…',
+  'Signing inâ€¦': 'Connexion…',
   'Overview of key metrics.': 'Aperçu des indicateurs clés.',
   'Running': 'En cours',
   'Closed': 'Terminées',
@@ -325,7 +379,7 @@ const translations = {
   'Approve': 'Approuver',
   'Representative Drafts': 'Brouillons des représentants',
   'Auctions created by REPRESENTANT and waiting for approval.': 'Enchères créées par des représentants et en attente d’approbation.',
-  'My Auctions · Bidders': 'Mes enchères · Enchérisseurs',
+  'My Auctions Â· Bidders': 'Mes enchères · Enchérisseurs',
   'See the list of people that bid on each of your auctions.': 'Voir la liste des personnes ayant enchéri sur chacune de vos enchères.',
   'View Bidders': 'Voir les enchérisseurs',
   'Unauthorized': 'Non autorisé',
@@ -344,7 +398,7 @@ const translations = {
   'Winner Bid:': 'Offre gagnante :',
   'User:': 'Utilisateur :',
   'Amount:': 'Montant :',
-  'Loading…': 'Chargement…',
+  'Loadingâ€¦': 'Chargement…',
   'Please wait while the admin console initializes.': 'Veuillez patienter pendant l’initialisation de la console d’administration.',
   'Admin Console': 'Console d’administration',
   'YES': 'OUI',
@@ -352,7 +406,7 @@ const translations = {
   'none': 'aucun',
   'Name': 'Nom',
   'Manage all auctions and control lifecycle.': 'Gérer toutes les enchères et leur cycle de vie.',
-  'Your auctions (create new or edit your drafts; admin must approve to publish).': 'Vos enchères (créez ou modifiez vos brouillons; un administrateur doit approuver pour publier).',
+  'Your auctions (create new or edit your drafts; admin must approve to publish).': 'Vos enchères (créez ou modifiez vos brouillons ; un administrateur doit approuver pour publier).',
   'Edit Auction': 'Modifier l’enchère',
   'New Auction': 'Nouvelle enchère',
   'Min Bid': 'Offre minimale',
@@ -741,7 +795,7 @@ async function ViewAuctions() {
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.status ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.minBid ?? ''} / ${a.maxBid ?? ''} ${a.currency ?? ''}</td>
-        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} → ${end}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} â†’ ${end}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn outline btn-edit" data-id="${a.id}">Edit</button>
           <button class="btn outline btn-start" data-id="${a.id}">Start</button>
@@ -943,7 +997,7 @@ async function ViewBids() {
     sel.innerHTML = '';
     for (const a of (page.content || [])) {
       const opt = document.createElement('option');
-      opt.value = a.id; opt.textContent = `${a.id} · ${a.title ?? ''} [${a.status ?? ''}]`;
+      opt.value = a.id; opt.textContent = `${a.id} Â· ${a.title ?? ''} [${a.status ?? ''}]`;
       sel.appendChild(opt);
     }
   }
@@ -1109,9 +1163,9 @@ async function ViewDrafts() {
       tr.innerHTML = `
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.id ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.title ?? ''}</td>
-        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} · ${a.productTitle ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} Â· ${a.productTitle ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.minBid ?? ''} / ${a.maxBid ?? ''} ${a.currency ?? ''}</td>
-        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} → ${end}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} â†’ ${end}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn outline btn-approve" data-id="${a.id}">Approve</button>
         </td>
@@ -1175,9 +1229,9 @@ async function ViewRepDrafts() {
      tr.innerHTML = `
        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.id ?? ''}</td>
        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.title ?? ''}</td>
-       <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} · ${a.productTitle ?? ''}</td>
+       <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} Â· ${a.productTitle ?? ''}</td>
        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.minBid ?? ''} / ${a.maxBid ?? ''} ${a.currency ?? ''}</td>
-       <td style="padding:8px;border-bottom:1px solid var(--border);">${start} → ${end}</td>
+       <td style="padding:8px;border-bottom:1px solid var(--border);">${start} â†’ ${end}</td>
        <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
          <button class="btn outline btn-approve" data-id="${a.id}">Approve</button>
        </td>
@@ -1206,7 +1260,7 @@ if (location.hash === '#/drafts' || location.hash === '#/rep-drafts') {
 // Override header renderer to also toggle nav links by role
 function renderHeaderRoleAware() {
   if (state.me) {
-    userBadgeEl.textContent = `${state.me.name || state.me.email} · ${state.me.role}`;
+    userBadgeEl.textContent = `${state.me.name || state.me.email} Â· ${state.me.role}`;
     loginBtn.classList.add('hidden');
     logoutBtn.classList.remove('hidden');
   } else {
@@ -1230,7 +1284,7 @@ function renderHeaderRoleAware() {
 
 // Improved Auctions View (ROLE-aware)
 // - ADMIN: paged list of all auctions, full controls (start/close/winner/delete)
-// - REPRESENTANT: list only “my” auctions (optionally filtered by status), create/edit; server enforces DRAFT on create
+// - REPRESENTANT: list only â€œmyâ€ auctions (optionally filtered by status), create/edit; server enforces DRAFT on create
 async function ViewAuctions2() {
   const role = state.me && state.me.role;
   const isAdmin = role === 'ADMIN';
@@ -1336,9 +1390,9 @@ async function ViewAuctions2() {
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.id ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.title ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);"><span class="muted">${a.status ?? ''}</span></td>
-        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} · ${a.productTitle ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} Â· ${a.productTitle ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.minBid ?? ''} / ${a.maxBid ?? ''} ${a.currency ?? ''}</td>
-        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} → ${end}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} â†’ ${end}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.isActive ? 'YES' : 'NO'}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn outline btn-edit" data-id="${a.id}">Edit</button>
@@ -1423,7 +1477,7 @@ async function ViewAuctions2() {
         sel.innerHTML = '';
         sel.appendChild(h('option', { value: '' }, 'Select a product'));
         products.forEach(p => {
-          sel.appendChild(h('option', { value: String(p.id), selected: existing?.productId === p.id }, `${p.id} · ${p.title}`));
+          sel.appendChild(h('option', { value: String(p.id), selected: existing?.productId === p.id }, `${p.id} Â· ${p.title}`));
         });
         sel.addEventListener('change', () => {
           const v = sel.value;
@@ -1533,7 +1587,7 @@ async function ViewMyBidders() {
   appEl.innerHTML = '';
 
   const wrap = h('div', {}, [
-    h('h2', {}, 'My Auctions · Bidders'),
+    h('h2', {}, 'My Auctions Â· Bidders'),
     h('div', { class: 'muted', style: 'margin-bottom:8px' }, 'See the list of people that bid on each of your auctions.'),
     h('div', { id: 'my-auctions-bidders', class: 'panel' })
   ]);
@@ -1559,8 +1613,8 @@ async function ViewMyBidders() {
     const section = h('div', { id: sectionId, style: 'border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:#0b1220;' }, [
       h('div', { style: 'display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;' }, [
         h('div', {}, [
-          h('div', {}, `#${a.id} · ${a.title ?? ''}`),
-          h('div', { class: 'muted', style: 'font-size:12px;' }, `${a.status ?? ''} · ${start} → ${end}`)
+          h('div', {}, `#${a.id} Â· ${a.title ?? ''}`),
+          h('div', { class: 'muted', style: 'font-size:12px;' }, `${a.status ?? ''} Â· ${start} â†’ ${end}`)
         ]),
         h('div', {}, [
           h('button', { class: 'btn outline', onclick: async () => { await loadBidders(a.id); } }, 'View Bidders')

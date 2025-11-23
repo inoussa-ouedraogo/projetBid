@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 public class ProductResponse {
+
     private Long id;
     private String title;
     private String description;
@@ -12,6 +13,10 @@ public class ProductResponse {
     private String imageUrl;
     private Instant createdAt;
     private Instant updatedAt;
+
+    // 🔥 AJOUT IMPORTANT
+    private Long createdById;
+    private String createdByName;
 
     // Getters/Setters
     public Long getId() { return id; }
@@ -37,4 +42,11 @@ public class ProductResponse {
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    // 🔥 AJOUTS
+    public Long getCreatedById() { return createdById; }
+    public void setCreatedById(Long createdById) { this.createdById = createdById; }
+
+    public String getCreatedByName() { return createdByName; }
+    public void setCreatedByName(String createdByName) { this.createdByName = createdByName; }
 }

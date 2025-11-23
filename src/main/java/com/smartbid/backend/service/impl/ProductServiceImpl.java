@@ -5,7 +5,6 @@ import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +14,7 @@ import com.smartbid.backend.controller.dto.ProductResponse;
 import com.smartbid.backend.controller.dto.ProductUpdateRequest;
 import com.smartbid.backend.model.Product;
 import com.smartbid.backend.model.ProductCategory;
+import com.smartbid.backend.model.User;
 import com.smartbid.backend.repository.ProductRepository;
 import com.smartbid.backend.repository.UserRepository;
 import com.smartbid.backend.service.ProductService;
@@ -74,28 +74,50 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public List<ProductResponse> list(String q) {
+        String trimmed = (q != null && !q.isBlank()) ? q.trim() : null;
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isAdmin = false;
+        boolean isRepresentant = false;
         String email = null;
+
         if (auth != null && auth.isAuthenticated()) {
             email = auth.getName();
-            for (GrantedAuthority ga : auth.getAuthorities()) {
-                if ("ROLE_ADMIN".equals(ga.getAuthority())) { isAdmin = true; break; }
+            var userOpt = userRepo.findByEmail(email);
+            if (userOpt.isPresent()) {
+                User.Role role = userOpt.get().getRole();
+                if (role == User.Role.ADMIN) {
+                    isAdmin = true;
+                } else if (role == User.Role.REPRESENTANT) {
+                    isRepresentant = true;
+                }
             }
         }
-    
+
         List<Product> products;
-        if (isAdmin || email == null) {
-            products = (q == null || q.isBlank())
+        if (isAdmin || email == null || !isRepresentant) {
+            // Admin ou user normal : tout le catalogue (avec recherche éventuelle)
+            products = (trimmed == null)
                     ? productRepo.findAll()
-                    : productRepo.findByTitleContainingIgnoreCase(q.trim());
+                    : productRepo.findByTitleContainingIgnoreCase(trimmed);
         } else {
-            // REPRESENTANT (ou autre rôle non admin) ne voit que ses produits
-            products = (q == null || q.isBlank())
+            // Représentant : uniquement ses produits
+            products = (trimmed == null)
                     ? productRepo.findByCreatedBy_Email(email)
-                    : productRepo.findByCreatedBy_EmailAndTitleContainingIgnoreCase(email, q.trim());
+                    : productRepo.findByCreatedBy_EmailAndTitleContainingIgnoreCase(email, trimmed);
         }
-    
+
+        return products.stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    // Liste publique (non restreinte) pour l'app mobile
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductResponse> listAll(String q) {
+        String trimmed = (q != null && !q.isBlank()) ? q.trim() : null;
+        List<Product> products = (trimmed == null)
+                ? productRepo.findAll()
+                : productRepo.findByTitleContainingIgnoreCase(trimmed);
         return products.stream().map(this::toResponse).collect(Collectors.toList());
     }
 

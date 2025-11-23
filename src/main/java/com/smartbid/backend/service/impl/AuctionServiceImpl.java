@@ -18,6 +18,7 @@ import com.smartbid.backend.controller.dto.AuctionCreateRequest;
 import com.smartbid.backend.controller.dto.AuctionResponse;
 import com.smartbid.backend.controller.dto.AuctionUpdateRequest;
 import com.smartbid.backend.controller.dto.BidResponse;
+import com.smartbid.backend.controller.dto.RankResponse;
 import com.smartbid.backend.model.Auction;
 import com.smartbid.backend.model.AuctionStatus;
 import com.smartbid.backend.model.AuctionType;
@@ -30,7 +31,7 @@ import com.smartbid.backend.repository.BidRepository;     // ✅ manquait
 import com.smartbid.backend.repository.ProductRepository;
 import com.smartbid.backend.repository.UserRepository;
 import com.smartbid.backend.service.AuctionService;
-import com.smartbid.backend.mapper.AuctionMapper;
+import com.smartbid.backend.service.RankService;
 
 @Service
 @Transactional
@@ -40,18 +41,18 @@ public class AuctionServiceImpl implements AuctionService {
     private final ProductRepository productRepo;
     private final UserRepository userRepo;
     private final BidRepository bidRepo;
-    private final AuctionMapper mapper; // 👈 ajouté
+    private final RankService rankService;
 
     public AuctionServiceImpl(AuctionRepository auctionRepo,
                               ProductRepository productRepo,
                               UserRepository userRepo,
                               BidRepository bidRepo,
-                              AuctionMapper mapper) { // 👈 ajouté dans le constructeur
+                              RankService rankService) {
         this.auctionRepo = auctionRepo;
         this.productRepo = productRepo;
         this.userRepo = userRepo;
         this.bidRepo = bidRepo;
-        this.mapper = mapper; // 👈 ajouté
+        this.rankService = rankService;
     }
 
 
@@ -111,16 +112,14 @@ public class AuctionServiceImpl implements AuctionService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AuctionResponse> list(Long productId, AuctionStatus status) {
-        List<Auction> list;
-        if (productId != null) {
-            list = auctionRepo.findByProduct_Id(productId);
-        } else if (status != null) {
-            list = auctionRepo.findByStatus(status);
-        } else {
-            list = auctionRepo.findAll();
-        }
-        return list.stream().map(this::toResponse).collect(Collectors.toList());
+    public List<AuctionResponse> list(Long productId, AuctionStatus status, String category, String search) {
+        ProductCategory categoryEnum = parseCategory(category);
+        String query = buildLikeSearch(search);
+        return auctionRepo
+                .search(productId, status, categoryEnum, query)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -150,8 +149,10 @@ public class AuctionServiceImpl implements AuctionService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AuctionResponse> listPaged(Pageable pageable) {
-        return auctionRepo.findAll(pageable).map(this::toResponse);
+    public Page<AuctionResponse> listPaged(Pageable pageable, AuctionStatus status, String category, String search) {
+        ProductCategory categoryEnum = parseCategory(category);
+        String query = buildLikeSearch(search);
+        return auctionRepo.searchPaged(status, categoryEnum, query, pageable).map(this::toResponse);
     }
 
     @Override
@@ -226,28 +227,28 @@ private BidResponse toBidResponse(Bid b) {
 }
 @Override
 @Transactional
-public AuctionResponse startNow(Long auctionId) {
-    var a = auctionRepo.findById(auctionId)
-            .orElseThrow(() -> new NoSuchElementException("Auction not found"));
+    public AuctionResponse startNow(Long auctionId) {
+        var a = auctionRepo.findById(auctionId)
+                .orElseThrow(() -> new NoSuchElementException("Auction not found"));
 
-    // Idempotence: si déjà démarrée ou finie, on ne fait rien
-    if (a.getStatus() == AuctionStatus.RUNNING || a.getStatus() == AuctionStatus.FINISHED) {
-        return toResponse(a);
-    }
+        // Idempotence: si déjà démarrée ou finie, on ne fait rien
+        if (a.getStatus() == AuctionStatus.RUNNING || a.getStatus() == AuctionStatus.FINISHED) {
+            return toResponse(a);
+        }
 
-    // Démarrage uniquement si la fenêtre est cohérente
-    Instant now = Instant.now();
-    if (now.isBefore(a.getStartAt())) {
-        throw new IllegalStateException("Cannot start before startAt");
-    }
-    if (!now.isBefore(a.getEndAt())) {
-        throw new IllegalStateException("Cannot start after endAt");
-    }
+        // Démarrage uniquement si la fenêtre est cohérente
+        Instant now = Instant.now();
+        if (now.isBefore(a.getStartAt())) {
+            throw new IllegalStateException("Cannot start before startAt");
+        }
+        if (!now.isBefore(a.getEndAt())) {
+            throw new IllegalStateException("Cannot start after endAt");
+        }
 
-    a.setStatus(AuctionStatus.RUNNING);
-    a.setIsActive(Boolean.TRUE);
-    return toResponse(auctionRepo.save(a));
-}
+        a.setStatus(AuctionStatus.RUNNING);
+        a.setIsActive(Boolean.TRUE);
+        return toResponse(auctionRepo.save(a));
+    }
 
 @Override
 @Transactional
@@ -287,54 +288,110 @@ public AuctionResponse approve(Long id) {
 
     return toResponse(auctionRepo.save(a));
 }
-  @Override
-public List<AuctionResponse> listByCategory(String category) {
-    try {
-        // ✅ Convertir le texte reçu (smartphone, voiture, etc.) en ENUM
-        ProductCategory enumCategory = ProductCategory.valueOf(category.toUpperCase());
 
-        // ✅ Appel à la méthode que tu as choisi de garder dans ton repository
-        return auctionRepo.findByCategory(enumCategory)
-                .stream()
-                .map(mapper::toResponse)
-                .toList();
+    @Override
+    @Transactional(readOnly = true)
+    public List<AuctionResponse> listParticipated() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = (auth != null) ? auth.getName() : null;
+        if (email == null) {
+            throw new IllegalStateException("Unauthenticated");
+        }
 
-    } catch (IllegalArgumentException e) {
-        throw new RuntimeException("Catégorie invalide : " + category);
+        List<Long> auctionIds = bidRepo.findDistinctAuctionIdsByUser_Email(email);
+        if (auctionIds.isEmpty()) {
+            return List.of();
+        }
+
+        return auctionRepo.findAllById(auctionIds).stream()
+                .map(a -> {
+                    Bid myBid = bidRepo.findTopByAuction_IdAndUser_EmailOrderByCreatedAtDesc(a.getId(), email)
+                            .orElse(null);
+                    RankResponse rank = rankService.computeUserRank(a.getId(), email);
+                    Long totalBids = bidRepo.countByAuction_Id(a.getId());
+                    return toResponse(a, myBid, rank, totalBids);
+                })
+                .collect(Collectors.toList());
     }
-}
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AuctionResponse> listByCategory(String category) {
+        ProductCategory enumCategory = parseCategory(category);
+        if (enumCategory == null) {
+            throw new IllegalArgumentException("Categorie invalide : " + category);
+        }
+
+        return auctionRepo.search(null, null, enumCategory, null)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    private ProductCategory parseCategory(String category) {
+        if (category == null || category.isBlank()) {
+            return null;
+        }
+        try {
+            return ProductCategory.valueOf(category.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Categorie invalide : " + category);
+        }
+    }
+
+    private String buildLikeSearch(String query) {
+        if (query == null || query.isBlank()) {
+            return null;
+        }
+        return "%" + query.trim().toLowerCase() + "%";
+    }
 
     private AuctionResponse toResponse(Auction a) {
-    AuctionResponse r = new AuctionResponse();
-    r.setId(a.getId());
-
-    if (a.getProduct() != null) {
-        r.setProductId(a.getProduct().getId());
-        r.setProductTitle(a.getProduct().getTitle());
-       // r.set
-        // 🧩 Ajoute la catégorie et l’image ici :
-        r.setCategory(a.getProduct().getCategory() != null ? a.getProduct().getCategory().name() : null);
-        r.setImageUrl(a.getProduct().getImageUrl());
+        return toResponse(a, null, null, null);
     }
 
-    r.setTitle(a.getTitle());
-    r.setDescription(a.getDescription());
-    r.setParticipationFee(a.getParticipationFee());
-    r.setCurrency(a.getCurrency());
-    r.setMinBid(a.getMinBid());
-    r.setMaxBid(a.getMaxBid());
-    r.setStartAt(a.getStartAt());
-    r.setEndAt(a.getEndAt());
-    r.setParticipantLimit(a.getParticipantLimit());
-    r.setStatus(a.getStatus());
-    r.setWinnerBidId(a.getWinnerBidId());
-    r.setType(a.getType());
-    r.setIsActive(a.getIsActive());
-    r.setCreatedAt(a.getCreatedAt());
-    r.setUpdatedAt(a.getUpdatedAt());
+    private AuctionResponse toResponse(Auction a, Bid myBid, RankResponse rank, Long totalBids) {
+        AuctionResponse r = new AuctionResponse();
+        r.setId(a.getId());
 
-    return r;
-}
+        if (a.getProduct() != null) {
+            r.setProductId(a.getProduct().getId());
+            r.setProductTitle(a.getProduct().getTitle());
+            r.setCategory(a.getProduct().getCategory() != null ? a.getProduct().getCategory().name() : null);
+            r.setImageUrl(a.getProduct().getImageUrl());
+        }
 
+        r.setTitle(a.getTitle());
+        r.setDescription(a.getDescription());
+        r.setParticipationFee(a.getParticipationFee());
+        r.setCurrency(a.getCurrency());
+        r.setMinBid(a.getMinBid());
+        r.setMaxBid(a.getMaxBid());
+        r.setStartAt(a.getStartAt());
+        r.setEndAt(a.getEndAt());
+        r.setParticipantLimit(a.getParticipantLimit());
+        r.setStatus(a.getStatus());
+        r.setWinnerBidId(a.getWinnerBidId());
+        r.setType(a.getType());
+        r.setIsActive(a.getIsActive());
+        r.setCreatedAt(a.getCreatedAt());
+        r.setUpdatedAt(a.getUpdatedAt());
 
+        if (totalBids != null) {
+            r.setTotalBids(totalBids.intValue());
+        }
+        if (myBid != null) {
+            r.setMyLastBidAmount(myBid.getAmount());
+            r.setMyLastBidAt(myBid.getCreatedAt());
+        }
+        if (rank != null) {
+            r.setMyRank(rank.getMyRank());
+            r.setMyBidUnique(rank.isMyBidUnique());
+            if (rank.getMyBidAmount() != null && r.getMyLastBidAmount() == null) {
+                r.setMyLastBidAmount(rank.getMyBidAmount());
+            }
+        }
+
+        return r;
+    }
 }

@@ -33,12 +33,46 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
     """)
     List<Auction> findByCategory(@Param("category") ProductCategory category);
 
+    @Query("""
+        SELECT a FROM Auction a
+        JOIN a.product p
+        WHERE (:productId IS NULL OR p.id = :productId)
+          AND (:status IS NULL OR a.status = :status)
+          AND (:category IS NULL OR p.category = :category)
+          AND (
+            :qLike IS NULL
+            OR LOWER(p.title) LIKE :qLike
+            OR LOWER(a.title) LIKE :qLike
+            OR LOWER(a.description) LIKE :qLike
+          )
+    """)
+    List<Auction> search(@Param("productId") Long productId,
+                         @Param("status") AuctionStatus status,
+                         @Param("category") ProductCategory category,
+                         @Param("qLike") String qLike);
+
+    @Query("""
+        SELECT a FROM Auction a
+        JOIN a.product p
+        WHERE (:status IS NULL OR a.status = :status)
+          AND (:category IS NULL OR p.category = :category)
+          AND (
+            :qLike IS NULL
+            OR LOWER(p.title) LIKE :qLike
+            OR LOWER(a.title) LIKE :qLike
+            OR LOWER(a.description) LIKE :qLike
+          )
+    """)
+    Page<Auction> searchPaged(@Param("status") AuctionStatus status,
+                              @Param("category") ProductCategory category,
+                              @Param("qLike") String qLike,
+                              Pageable pageable);
+
     // 🔁 À démarrer
     @Query("""
         SELECT a.id
         FROM Auction a
-        WHERE a.isActive = FALSE
-          AND a.status = com.smartbid.backend.model.AuctionStatus.SCHEDULED
+        WHERE a.status = com.smartbid.backend.model.AuctionStatus.SCHEDULED
           AND a.startAt <= :now
           AND a.endAt > :now
     """)

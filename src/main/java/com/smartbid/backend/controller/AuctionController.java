@@ -53,8 +53,10 @@ public class AuctionController {
     @GetMapping
     public ResponseEntity<List<AuctionResponse>> list(
             @RequestParam(required = false) Long productId,
-            @RequestParam(required = false) AuctionStatus status) {
-        return ResponseEntity.ok(service.list(productId, status));
+            @RequestParam(required = false) AuctionStatus status,
+            @RequestParam(required = false) String category,
+            @RequestParam(value = "q", required = false) String query) {
+        return ResponseEntity.ok(service.list(productId, status, category, query));
     }
 
     // UPDATE
@@ -71,20 +73,27 @@ public class AuctionController {
         return ResponseEntity.noContent().build();
     }
    // lister les enchères, mais par petites pages au lieu d’envoyer toute la liste d’un coup.
-  @GetMapping("/paged")
-public ResponseEntity<Page<AuctionResponse>> listPaged(
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "10") int size,
-        @RequestParam(defaultValue = "createdAt,DESC") String sort // "champ,SENS"
-) {
-    String[] s = sort.split(",", 2);
-    Sort order = Sort.by(
-        Sort.Direction.fromString(s.length > 1 ? s[1] : "DESC"),
-        s[0]
-    );
-    Pageable pageable = PageRequest.of(page, size, order);
-    return ResponseEntity.ok(service.listPaged(pageable));
-}
+    @GetMapping("/paged")
+    public ResponseEntity<Page<AuctionResponse>> listPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt,DESC") String sort,
+            @RequestParam(required = false) AuctionStatus status,
+            @RequestParam(required = false) String category,
+            @RequestParam(value = "q", required = false) String query) {
+        String[] s = sort.split(",", 2);
+        Sort order = Sort.by(
+                Sort.Direction.fromString(s.length > 1 ? s[1] : "DESC"),
+                s[0]
+        );
+        Pageable pageable = PageRequest.of(page, size, order);
+        return ResponseEntity.ok(service.listPaged(pageable, status, category, query));
+    }
+
+    @GetMapping("/participated")
+    public ResponseEntity<List<AuctionResponse>> participated() {
+        return ResponseEntity.ok(service.listParticipated());
+    }
 @PostMapping("/{id}/close")
 public ResponseEntity<AuctionResponse> closeNow(@PathVariable Long id) {
     return ResponseEntity.ok(service.closeAndPickWinner(id));
