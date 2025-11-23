@@ -6,7 +6,6 @@ import java.time.Instant;
 import com.smartbid.backend.model.AuctionStatus;
 import com.smartbid.backend.model.AuctionType;
 
-
 public class AuctionResponse {
 
     private Long id;
@@ -32,7 +31,6 @@ public class AuctionResponse {
     private Instant endAt;
     private Integer participantLimit;
 
-    // ✔ Doit être un String (Swagger)
     private String status;
 
     private Long winnerBidId;
@@ -44,18 +42,14 @@ public class AuctionResponse {
     private Instant createdAt;
     private Instant updatedAt;
 
-    // ✔ Doit être un String (Swagger)
-    //private import com.smartbid.backend.model.AuctionType;
     private AuctionType type;
 
     private Boolean isActive;
 
-    // Créateur de L’ENCHÈRE
+    // Créateur de l’enchère
     private Long createdById;
     private String createdByName;
-
-
-    // ======== GETTERS / SETTERS ========
+    private String createdByEmail;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -107,6 +101,7 @@ public class AuctionResponse {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public void setStatus(AuctionStatus status) { this.status = status.name(); }
 
     public Long getWinnerBidId() { return winnerBidId; }
     public void setWinnerBidId(Long winnerBidId) { this.winnerBidId = winnerBidId; }
@@ -132,8 +127,8 @@ public class AuctionResponse {
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 
-    //public String getType() { return type; }
-    //public void setType(String type) { this.type = type; }
+    public AuctionType getType() { return type; }
+    public void setType(AuctionType type) { this.type = type; }
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
@@ -144,7 +139,6 @@ public class AuctionResponse {
     public String getCreatedByName() { return createdByName; }
     public void setCreatedByName(String createdByName) { this.createdByName = createdByName; }
 
-    public void setStatus(AuctionStatus status) { this.status = status.name(); }
-public AuctionType getType() { return type; }
-    public void setType(AuctionType type) { this.type = type; }
+    public String getCreatedByEmail() { return createdByEmail; }
+    public void setCreatedByEmail(String createdByEmail) { this.createdByEmail = createdByEmail; }
 }

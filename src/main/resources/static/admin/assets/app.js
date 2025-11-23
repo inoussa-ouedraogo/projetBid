@@ -1138,6 +1138,7 @@ async function ViewDrafts() {
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Product</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Min/Max</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Start/End</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Status</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Actions</th>
         </tr>
       </thead>
@@ -1146,8 +1147,8 @@ async function ViewDrafts() {
   </div>`);
 
   appEl.appendChild(h('div', {}, [
-    h('h2', {}, 'Pending Auctions (Drafts)'),
-    h('div', { class: 'muted', style: 'margin-bottom:8px' }, 'Auctions submitted by representatives and awaiting approval.'),
+    h('h2', {}, 'Drafts'),
+    h('div', { class: 'muted', style: 'margin-bottom:8px' }, 'Auctions created by ADMIN or REPRESENTANT and not yet approved.'),
     table
   ]));
 
@@ -1163,34 +1164,28 @@ async function ViewDrafts() {
       tr.innerHTML = `
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.id ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.title ?? ''}</td>
-        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} Â· ${a.productTitle ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} · ${a.productTitle ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.minBid ?? ''} / ${a.maxBid ?? ''} ${a.currency ?? ''}</td>
-        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} â†’ ${end}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} → ${end}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.status ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn outline btn-approve" data-id="${a.id}">Approve</button>
         </td>
       `;
       tb.appendChild(tr);
     }
-    tb.querySelectorAll('.btn-approve').forEach(b => b.addEventListener('click', () => approve(b.dataset.id)));
-  }
-
-  async function approve(id) {
-    if (!confirm('Approve this auction? It will become scheduled and visible.')) return;
-    const res = await apiFetch(`/api/admin/auctions/${id}/approve`, { method: 'PUT' });
-    if (!res.ok) {
-      alert(await res.text());
-    }
-    await loadDrafts();
+    tb.querySelectorAll('.btn-approve').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Approve this auction?')) return;
+      const res2 = await apiFetch(`/api/admin/auctions/${b.dataset.id}/approve`, { method: 'PUT' });
+      if (!res2.ok) alert(await res2.text());
+      await loadDrafts();
+    }));
   }
 
   await loadDrafts();
 }
 
-// Register route for drafts (admin only)
-Router.add('#/drafts', ViewDrafts);
 
-// ViewRepDrafts (admin only) - drafts created by REPRESENTANT
 async function ViewRepDrafts() {
  if (!isAdmin()) { location.hash = '#/login'; return; }
  appEl.innerHTML = '';
@@ -1204,6 +1199,7 @@ async function ViewRepDrafts() {
          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Product</th>
          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Min/Max</th>
          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Start/End</th>
+         <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Representative</th>
          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Actions</th>
        </tr>
      </thead>
@@ -1222,22 +1218,23 @@ async function ViewRepDrafts() {
    const items = res.ok ? await res.json() : [];
    const tb = document.getElementById('rep-draft-rows');
    tb.innerHTML = '';
-   for (const a of items) {
-     const start = a.startAt ? new Date(a.startAt).toLocaleString() : '';
-     const end = a.endAt ? new Date(a.endAt).toLocaleString() : '';
-     const tr = document.createElement('tr');
-     tr.innerHTML = `
-       <td style="padding:8px;border-bottom:1px solid var(--border);">${a.id ?? ''}</td>
-       <td style="padding:8px;border-bottom:1px solid var(--border);">${a.title ?? ''}</td>
-       <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} Â· ${a.productTitle ?? ''}</td>
-       <td style="padding:8px;border-bottom:1px solid var(--border);">${a.minBid ?? ''} / ${a.maxBid ?? ''} ${a.currency ?? ''}</td>
-       <td style="padding:8px;border-bottom:1px solid var(--border);">${start} â†’ ${end}</td>
-       <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
-         <button class="btn outline btn-approve" data-id="${a.id}">Approve</button>
-       </td>
-     `;
-     tb.appendChild(tr);
-   }
+    for (const a of items) {
+      const start = a.startAt ? new Date(a.startAt).toLocaleString() : '';
+      const end = a.endAt ? new Date(a.endAt).toLocaleString() : '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.id ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.title ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} · ${a.productTitle ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.minBid ?? ''} / ${a.maxBid ?? ''} ${a.currency ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} → ${end}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${(a.createdByName || '')}${a.createdByEmail ? ' · ' + a.createdByEmail : ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn outline btn-approve" data-id="${a.id}">Approve</button>
+        </td>
+      `;
+      tb.appendChild(tr);
+    }
    tb.querySelectorAll('.btn-approve').forEach(b => b.addEventListener('click', async () => {
      if (!confirm('Approve this auction?')) return;
      const res2 = await apiFetch(`/api/admin/auctions/${b.dataset.id}/approve`, { method: 'PUT' });

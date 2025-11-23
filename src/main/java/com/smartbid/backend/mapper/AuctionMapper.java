@@ -34,6 +34,12 @@ public class AuctionMapper {
         dto.setType(auction.getType());
         dto.setIsActive(auction.getIsActive());
 
+        if (auction.getCreatedBy() != null) {
+            dto.setCreatedById(auction.getCreatedBy().getId());
+            dto.setCreatedByName(auction.getCreatedBy().getName());
+            dto.setCreatedByEmail(auction.getCreatedBy().getEmail());
+        }
+
         // 🧩 Informations liées au produit
         if (product != null) {
             dto.setProductId(product.getId());

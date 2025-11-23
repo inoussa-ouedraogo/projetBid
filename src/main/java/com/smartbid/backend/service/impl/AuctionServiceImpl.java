@@ -259,12 +259,12 @@ public AuctionResponse startAuction(Long auctionId) {
     if (a.getStatus() == AuctionStatus.RUNNING) {
         throw new IllegalStateException("Auction already running");
     }
-    if (a.getStatus() == AuctionStatus.FINISHED) {
-        throw new IllegalStateException("Auction already finished");
-    }
+        if (a.getStatus() == AuctionStatus.FINISHED) {
+            throw new IllegalStateException("Auction already finished");
+        }
 
-    a.setStatus(AuctionStatus.RUNNING);
-    a.setIsActive(true);
+        a.setStatus(AuctionStatus.RUNNING);
+        a.setIsActive(true);
 
     Auction saved = auctionRepo.save(a);
     return toResponse(saved);
@@ -390,6 +390,12 @@ public AuctionResponse approve(Long id) {
             if (rank.getMyBidAmount() != null && r.getMyLastBidAmount() == null) {
                 r.setMyLastBidAmount(rank.getMyBidAmount());
             }
+        }
+
+        if (a.getCreatedBy() != null) {
+            r.setCreatedById(a.getCreatedBy().getId());
+            r.setCreatedByName(a.getCreatedBy().getName());
+            r.setCreatedByEmail(a.getCreatedBy().getEmail());
         }
 
         return r;
