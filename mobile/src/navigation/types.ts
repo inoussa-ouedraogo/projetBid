@@ -7,6 +7,8 @@ export type AppTabsParamList = {
   Home: undefined;
   Auctions: undefined;
   Bids: undefined;
+  Favorites: undefined;
+  Swipe: undefined;
   Profile: undefined;
 };
 
@@ -14,4 +16,3 @@ export type RootStackParamList = {
   Tabs: undefined;
   AuctionDetail: { id: number };
 };
-

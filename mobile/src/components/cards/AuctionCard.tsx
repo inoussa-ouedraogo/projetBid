@@ -6,6 +6,8 @@ import { formatCurrency, formatRelative } from '@/utils/format';
 import { resolveImageUrl } from '@/utils/media';
 import { GavelIcon } from '../icons/GavelIcon';
 import { WalletIcon } from '../icons/WalletIcon';
+import { Ionicons } from '@expo/vector-icons';
+import { useFavoritesStore } from '@/store/useFavoritesStore';
 
 type Props = {
   auction: Auction;
@@ -14,6 +16,8 @@ type Props = {
 
 export const AuctionCard = ({ auction, onPress }: Props) => {
   const { colors, palette } = useTheme();
+  const toggleFavorite = useFavoritesStore((state) => state.toggle);
+  const isFavorite = useFavoritesStore((state) => state.isFavorite(auction.id));
 
   const statusColor =
     auction.status === 'RUNNING'
@@ -32,6 +36,26 @@ export const AuctionCard = ({ auction, onPress }: Props) => {
       activeOpacity={0.8}
     >
       <View style={styles.imageWrapper}>
+        <TouchableOpacity
+          onPress={() => toggleFavorite(auction.id)}
+          activeOpacity={0.7}
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            zIndex: 2,
+            backgroundColor: colors.surface + 'dd',
+            borderRadius: 18,
+            padding: 8,
+          }}
+        >
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={18}
+            color={isFavorite ? palette.primary : colors.textPrimary}
+          />
+        </TouchableOpacity>
+
         {auction.imageUrl ? (
           <Image source={{ uri: resolveImageUrl(auction.imageUrl) }} style={styles.image} />
         ) : (

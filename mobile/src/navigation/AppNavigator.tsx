@@ -13,6 +13,8 @@ import AuctionsScreen from '@/screens/AuctionsScreen';
 import BidsScreen from '@/screens/BidsScreen';
 import ProfileScreen from '@/screens/ProfileScreen';
 import AuctionDetailScreen from '@/screens/AuctionDetailScreen';
+import FavoritesScreen from '@/screens/FavoritesScreen';
+import SwipeScreen from '@/screens/SwipeScreen';
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -31,6 +33,8 @@ const AppTabs = () => {
             Home: 'home',
             Auctions: 'pricetag',
             Bids: 'cash',
+            Favorites: 'heart',
+            Swipe: 'swap-horizontal',
             Profile: 'person',
           };
           return <Ionicons name={icons[route.name]} color={color} size={size} />;
@@ -44,6 +48,8 @@ const AppTabs = () => {
         component={BidsScreen}
         options={{ title: 'Participations', tabBarLabel: 'Participations' }}
       />
+      <Tabs.Screen name="Favorites" component={FavoritesScreen} options={{ title: 'Favoris' }} />
+      <Tabs.Screen name="Swipe" component={SwipeScreen} options={{ title: 'Parcours' }} />
       <Tabs.Screen name="Profile" component={ProfileScreen} />
     </Tabs.Navigator>
   );

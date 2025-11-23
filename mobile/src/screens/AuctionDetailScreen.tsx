@@ -16,6 +16,7 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import { resolveImageUrl } from '@/utils/media';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { BidCard } from '@/components/cards/BidCard';
+import { AuctionCard } from '@/components/cards/AuctionCard';
 import { useTheme } from '@/hooks/useTheme';
 import { EmptyState } from '@/components/feedback/EmptyState';
 
