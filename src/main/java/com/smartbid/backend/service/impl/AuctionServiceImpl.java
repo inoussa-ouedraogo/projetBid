@@ -32,6 +32,7 @@ import com.smartbid.backend.repository.ProductRepository;
 import com.smartbid.backend.repository.UserRepository;
 import com.smartbid.backend.service.AuctionService;
 import com.smartbid.backend.service.RankService;
+import com.smartbid.backend.repository.PurchaseRepository;
 
 @Service
 @Transactional
@@ -42,17 +43,20 @@ public class AuctionServiceImpl implements AuctionService {
     private final UserRepository userRepo;
     private final BidRepository bidRepo;
     private final RankService rankService;
+    private final PurchaseRepository purchaseRepository;
 
     public AuctionServiceImpl(AuctionRepository auctionRepo,
                               ProductRepository productRepo,
                               UserRepository userRepo,
                               BidRepository bidRepo,
-                              RankService rankService) {
+                              RankService rankService,
+                              PurchaseRepository purchaseRepository) {
         this.auctionRepo = auctionRepo;
         this.productRepo = productRepo;
         this.userRepo = userRepo;
         this.bidRepo = bidRepo;
         this.rankService = rankService;
+        this.purchaseRepository = purchaseRepository;
     }
 
 
@@ -298,12 +302,7 @@ public AuctionResponse approve(Long id) {
             throw new IllegalStateException("Unauthenticated");
         }
 
-        List<Long> auctionIds = bidRepo.findDistinctAuctionIdsByUser_Email(email);
-        if (auctionIds.isEmpty()) {
-            return List.of();
-        }
-
-        return auctionRepo.findAllById(auctionIds).stream()
+        return bidRepo.findDistinctAuctionsByUserEmailFetchProduct(email).stream()
                 .map(a -> {
                     Bid myBid = bidRepo.findTopByAuction_IdAndUser_EmailOrderByCreatedAtDesc(a.getId(), email)
                             .orElse(null);
@@ -399,5 +398,34 @@ public AuctionResponse approve(Long id) {
         }
 
         return r;
+    }
+
+    @Override
+    @Transactional
+    public AuctionResponse buyNow(Long id, com.smartbid.backend.controller.dto.BuyNowRequest req) {
+        Auction a = auctionRepo.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Auction not found"));
+
+        if (a.getStatus() == AuctionStatus.FINISHED) {
+            throw new IllegalStateException("Auction already finished");
+        }
+
+        // Persist purchase
+        com.smartbid.backend.model.Purchase purchase = new com.smartbid.backend.model.Purchase();
+        purchase.setAuction(a);
+        purchase.setFullName(req.getFullName());
+        purchase.setPhone(req.getPhone());
+        purchase.setAddress(req.getAddress());
+        purchase.setCity(req.getCity());
+        purchase.setPaymentMethod(req.getPaymentMethod());
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            purchase.setBuyerEmail(auth.getName());
+        }
+
+        purchaseRepository.save(purchase);
+
+        return toResponse(a);
     }
 }

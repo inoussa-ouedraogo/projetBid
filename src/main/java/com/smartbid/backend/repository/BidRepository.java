@@ -42,4 +42,12 @@ Optional<Bid> findTopByAuction_IdAndUser_EmailOrderByCreatedAtDesc(Long auctionI
 
     long countByAuction_Id(Long auctionId);
 
+    @Query("""
+        SELECT DISTINCT a FROM Bid b
+        JOIN b.auction a
+        JOIN FETCH a.product
+        WHERE b.user.email = :email
+    """)
+    List<com.smartbid.backend.model.Auction> findDistinctAuctionsByUserEmailFetchProduct(@Param("email") String email);
+
 }

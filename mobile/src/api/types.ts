@@ -18,6 +18,7 @@ export interface Auction {
   currency: string;
   minBid: number;
   maxBid: number;
+  buyNowPrice?: number;
   startAt: string;
   endAt: string;
   participantLimit: number;
@@ -104,4 +105,26 @@ export interface RankResponse {
   highestBidAmount?: number;
   uniqueCount: number;
   totalBids: number;
+}
+
+export type BuyNowPayload = {
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  paymentMethod: 'ORANGE_MONEY' | 'CASH_ON_DELIVERY';
+};
+
+export interface Purchase {
+  id: number;
+  auctionId: number;
+  auctionTitle: string;
+  productTitle?: string;
+  buyerEmail?: string;
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  paymentMethod: string;
+  createdAt: string;
 }

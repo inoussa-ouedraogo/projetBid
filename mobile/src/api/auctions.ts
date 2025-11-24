@@ -1,5 +1,5 @@
 import { api } from './client';
-import { Auction, AuctionStatus, Bid, PagedResponse, BidPayload, RankResponse } from './types';
+import { Auction, AuctionStatus, Bid, PagedResponse, BidPayload, RankResponse, BuyNowPayload } from './types';
 
 type AuctionFilters = {
   status?: AuctionStatus;
@@ -52,3 +52,6 @@ export const listParticipatedAuctions = () =>
 
 export const getMyRank = (auctionId: number) =>
   api.get<RankResponse>(`/api/auctions/${auctionId}/my-rank`).then((r) => r.data);
+
+export const buyNow = (auctionId: number, payload: BuyNowPayload) =>
+  api.post<Auction>(`/api/auctions/${auctionId}/buy-now`, payload).then((r) => r.data);

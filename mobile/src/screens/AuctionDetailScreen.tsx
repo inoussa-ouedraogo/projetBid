@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, Image, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Modal, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Screen } from '@/components/layout/Screen';
@@ -11,14 +11,17 @@ import {
   useBidMutation,
   useMyRank,
 } from '@/hooks/queries';
+import { useBuyNowMutation } from '@/hooks/queries';
 import { LoadingIndicator } from '@/components/feedback/LoadingIndicator';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { resolveImageUrl } from '@/utils/media';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { BidCard } from '@/components/cards/BidCard';
 import { AuctionCard } from '@/components/cards/AuctionCard';
+import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
 import { EmptyState } from '@/components/feedback/EmptyState';
+import { BuyNowPayload } from '@/api/types';
 
 type TabKey = 'bids' | 'similar' | 'rank';
 
@@ -29,9 +32,20 @@ const AuctionDetailScreen = () => {
   const { data: bids = [], refetch: refetchBids } = useAuctionBids(route.params?.id);
   const [amount, setAmount] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('bids');
+  const [buyForm, setBuyForm] = useState<BuyNowPayload>({
+    fullName: '',
+    phone: '',
+    address: '',
+    city: '',
+    paymentMethod: 'ORANGE_MONEY',
+  });
+  const [showBuyForm, setShowBuyForm] = useState(false);
   const bidMutation = useBidMutation(route.params?.id as number);
   const rank = useMyRank(route.params?.id);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const buyNowMutation = useBuyNowMutation(route.params?.id as number);
+  const buyNowPrice = auction?.buyNowPrice ?? auction?.minBid ?? auction?.maxBid;
+  const { user } = useAuth();
 
   const similarFilters = useMemo(
     () =>
@@ -172,7 +186,158 @@ const AuctionDetailScreen = () => {
             disabled={!isRunning || !amount}
             loading={bidMutation.isPending}
           />
+          {buyNowPrice ? (
+            <PrimaryButton
+              label={`Acheter maintenant (${formatCurrency(buyNowPrice, auction.currency)})`}
+              onPress={() => setShowBuyForm(true)}
+              disabled={buyNowMutation.isPending}
+              loading={buyNowMutation.isPending}
+            />
+          ) : null}
         </View>
+
+        {buyNowPrice ? (
+          <Modal visible={showBuyForm} animationType="slide" transparent>
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: '#00000055',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: colors.surface,
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                  padding: 20,
+                  maxHeight: '85%',
+                }}
+              >
+                <ScrollView contentContainerStyle={{ gap: 12 }}>
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: colors.textPrimary }}>
+                    Acheter maintenant
+                  </Text>
+                  <Text style={{ color: colors.textSecondary }}>
+                    Prix: {formatCurrency(buyNowPrice, auction.currency)}
+                  </Text>
+
+                  <TextInput
+                    placeholder="Nom complet"
+                    placeholderTextColor={colors.muted}
+                    value={buyForm.fullName}
+                    onChangeText={(text) => setBuyForm((prev) => ({ ...prev, fullName: text }))}
+                    style={{
+                      padding: 12,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      color: colors.textPrimary,
+                      backgroundColor: colors.elevated,
+                    }}
+                  />
+                  <TextInput
+                    placeholder="Téléphone"
+                    keyboardType="phone-pad"
+                    placeholderTextColor={colors.muted}
+                    value={buyForm.phone}
+                    onChangeText={(text) => setBuyForm((prev) => ({ ...prev, phone: text }))}
+                    style={{
+                      padding: 12,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      color: colors.textPrimary,
+                      backgroundColor: colors.elevated,
+                    }}
+                  />
+                  <TextInput
+                    placeholder="Adresse"
+                    placeholderTextColor={colors.muted}
+                    value={buyForm.address}
+                    onChangeText={(text) => setBuyForm((prev) => ({ ...prev, address: text }))}
+                    style={{
+                      padding: 12,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      color: colors.textPrimary,
+                      backgroundColor: colors.elevated,
+                    }}
+                  />
+                  <TextInput
+                    placeholder="Ville"
+                    placeholderTextColor={colors.muted}
+                    value={buyForm.city}
+                    onChangeText={(text) => setBuyForm((prev) => ({ ...prev, city: text }))}
+                    style={{
+                      padding: 12,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      color: colors.textPrimary,
+                      backgroundColor: colors.elevated,
+                    }}
+                  />
+
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    {[
+                      { key: 'ORANGE_MONEY', label: 'Orange Money' },
+                      { key: 'CASH_ON_DELIVERY', label: 'Paiement à la livraison' },
+                    ].map((pm) => {
+                      const active = buyForm.paymentMethod === pm.key;
+                      return (
+                        <TouchableOpacity
+                          key={pm.key}
+                          onPress={() =>
+                            setBuyForm((prev) => ({ ...prev, paymentMethod: pm.key as any }))
+                          }
+                          style={{
+                            flex: 1,
+                            padding: 12,
+                            borderRadius: 12,
+                            borderWidth: 1,
+                            borderColor: active ? palette.primary : colors.border,
+                            backgroundColor: active ? palette.primary + '15' : colors.surface,
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: active ? palette.primary : colors.textPrimary,
+                              fontWeight: '700',
+                            }}
+                          >
+                            {pm.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <PrimaryButton
+                    label="Confirmer l'achat"
+                    onPress={async () => {
+                      try {
+                        await buyNowMutation.mutateAsync(buyForm);
+                        Alert.alert('Achat confirme', 'Le produit est reserve pour toi.');
+                        setShowBuyForm(false);
+                      } catch (error: any) {
+                        const message = error?.response?.data || 'Achat impossible pour le moment';
+                        Alert.alert('Erreur', String(message));
+                      }
+                    }}
+                    disabled={buyNowMutation.isPending}
+                    loading={buyNowMutation.isPending}
+                  />
+                  <TouchableOpacity onPress={() => setShowBuyForm(false)}>
+                    <Text style={{ color: colors.textSecondary, textAlign: 'center' }}>Annuler</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+        ) : null}
 
         <View style={{ flexDirection: 'row', gap: 10 }}>
           {[
@@ -221,10 +386,12 @@ const AuctionDetailScreen = () => {
               Historique des mises
             </Text>
 
-            {bids.length === 0 ? (
+            {bids.filter((b) => !user || b.userEmail === user.email).length === 0 ? (
               <EmptyState title="Pas encore de mise" subtitle="Sois le premier a tenter ta chance." />
             ) : (
-              bids.map((bid) => <BidCard key={bid.id} bid={bid} />)
+              bids
+                .filter((b) => !user || b.userEmail === user.email)
+                .map((bid) => <BidCard key={bid.id} bid={bid} />)
             )}
           </View>
         ) : null}

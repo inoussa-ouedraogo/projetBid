@@ -33,6 +33,8 @@ public class AuctionMapper {
         dto.setUpdatedAt(auction.getUpdatedAt());
         dto.setType(auction.getType());
         dto.setIsActive(auction.getIsActive());
+        // Prix d'achat immédiat calé sur le minimum (meilleure affaire)
+        dto.setBuyNowPrice(auction.getMinBid());
 
         if (auction.getCreatedBy() != null) {
             dto.setCreatedById(auction.getCreatedBy().getId());

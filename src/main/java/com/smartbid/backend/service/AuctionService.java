@@ -20,7 +20,7 @@ public interface AuctionService {
     Page<AuctionResponse> listPaged(Pageable pageable, AuctionStatus status, String category, String search);
     AuctionResponse closeAndPickWinner(Long auctionId);
     AuctionResponse startNow(Long auctionId);
- AuctionResponse startAuction(Long id);
+    AuctionResponse startAuction(Long id);
     AuctionResponse approve(Long id);
     List<AuctionResponse> listMine(AuctionStatus status);
  
@@ -28,6 +28,7 @@ public interface AuctionService {
  BidResponse getWinner(Long auctionId);
  List<AuctionResponse> listByCategory(String category);
  List<AuctionResponse> listParticipated();
+    AuctionResponse buyNow(Long id, com.smartbid.backend.controller.dto.BuyNowRequest req);
  
  
 }

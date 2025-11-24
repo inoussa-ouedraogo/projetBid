@@ -1122,8 +1122,64 @@ Router.add('#/users', ViewUsers);
 if (['#/products','#/auctions','#/bids','#/users'].includes(location.hash)) {
   Router.go();
 }
+// Purchases view (admin + representant)
+async function ViewPurchases() {
+  if (!state.me) { location.hash = '#/login'; return; }
+  if (!(isAdmin() || isRep())) { location.hash = '#/login'; return; }
+  appEl.innerHTML = '';
+
+  const table = elFromHTML(`<div class="panel" style="overflow:auto;">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">ID</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Auction</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Product</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Acheteur</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Contact</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Paiement</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Date</th>
+        </tr>
+      </thead>
+      <tbody id="purchase-rows"></tbody>
+    </table>
+  </div>`);
+
+  appEl.appendChild(h('div', {}, [
+    h('h2', {}, 'Achats en un clic'),
+    h('div', { class: 'muted', style: 'margin-bottom:8px' },
+      isAdmin() ? 'Toutes les commandes Buy Now' : 'Commandes sur vos enchères'),
+    table
+  ]));
+
+  async function loadPurchases() {
+    const url = isAdmin() ? '/api/purchases' : '/api/purchases/my-auctions';
+    const res = await apiFetch(url);
+    const items = res.ok ? await res.json() : [];
+    const tb = document.getElementById('purchase-rows');
+    tb.innerHTML = '';
+    for (const p of items) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${p.id ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${p.auctionId ?? ''} · ${p.auctionTitle ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${p.productTitle ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${p.fullName ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${p.phone ?? ''} ${p.buyerEmail ? ' · ' + p.buyerEmail : ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${p.paymentMethod ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${p.createdAt ? new Date(p.createdAt).toLocaleString() : ''}</td>
+      `;
+      tb.appendChild(tr);
+    }
+  }
+
+  await loadPurchases();
+}
+
+Router.add('#/purchases', ViewPurchases);
 // ====== Admin Drafts Approval View (append) ======
 function isAdmin() { return !!(state.me && state.me.role === 'ADMIN'); }
+function isRep() { return !!(state.me && state.me.role === 'REPRESENTANT'); }
 
 async function ViewDrafts() {
   if (!isAdmin()) { location.hash = '#/login'; return; }

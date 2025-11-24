@@ -98,6 +98,11 @@ public class AuctionController {
 public ResponseEntity<AuctionResponse> closeNow(@PathVariable Long id) {
     return ResponseEntity.ok(service.closeAndPickWinner(id));
 }
+    @PostMapping("/{id}/buy-now")
+    public ResponseEntity<AuctionResponse> buyNow(@PathVariable Long id,
+                                                  @RequestBody com.smartbid.backend.controller.dto.BuyNowRequest req) {
+        return ResponseEntity.ok(service.buyNow(id, req));
+    }
    // START manual
     @PostMapping("/{id}/start")
     public ResponseEntity<AuctionResponse> startAuction(@PathVariable Long id) {

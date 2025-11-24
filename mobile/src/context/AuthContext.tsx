@@ -11,6 +11,7 @@ import {
   me,
   register as registerRequest,
   deleteAccount as deleteAccountRequest,
+  updateProfile as updateProfileRequest,
 } from '@/api/auth';
 import { setAuthToken } from '@/api/client';
 import { LoginResponse, MeResponse, RegisterResponse } from '@/api/types';
@@ -38,6 +39,7 @@ type AuthContextValue = {
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   deleteAccount: () => Promise<void>;
+  updateProfile: (payload: { name?: string; phone?: string; password?: string }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -110,7 +112,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const value = useMemo(
-    () => ({ user, token, initializing, login, register, logout, refreshProfile, deleteAccount }),
+    () => ({
+      user,
+      token,
+      initializing,
+      login,
+      register,
+      logout,
+      refreshProfile,
+      deleteAccount,
+      updateProfile: async (payload: { name?: string; phone?: string; password?: string }) => {
+        const updated = await updateProfileRequest(payload);
+        setUser(updated);
+      },
+    }),
     [user, token, initializing, login, register, logout, refreshProfile, deleteAccount]
   );
 

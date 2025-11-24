@@ -7,10 +7,12 @@ import {
   placeBid,
   listParticipatedAuctions,
   getMyRank,
+  buyNow,
 } from '@/api/auctions';
 import { listMyBids } from '@/api/bids';
 import { listProducts } from '@/api/products';
-import { AuctionStatus, BidPayload } from '@/api/types';
+import { listMyPurchases } from '@/api/purchases';
+import { AuctionStatus, BidPayload, BuyNowPayload } from '@/api/types';
 
 type AuctionFilters = {
   status?: AuctionStatus;
@@ -76,6 +78,12 @@ export const useMyRank = (auctionId?: number) =>
     staleTime: 15000,
   });
 
+export const useMyPurchases = () =>
+  useQuery({
+    queryKey: ['my-purchases'],
+    queryFn: () => listMyPurchases(),
+  });
+
 export const useBidMutation = (auctionId: number) => {
   const client = useQueryClient();
   return useMutation({
@@ -86,6 +94,20 @@ export const useBidMutation = (auctionId: number) => {
       client.invalidateQueries({ queryKey: ['my-bids'] });
       client.invalidateQueries({ queryKey: ['auction-rank', auctionId] });
       client.invalidateQueries({ queryKey: ['participated-auctions'] });
+    },
+  });
+};
+
+export const useBuyNowMutation = (auctionId: number) => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: BuyNowPayload) => buyNow(auctionId, payload),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['auction', auctionId] });
+      client.invalidateQueries({ queryKey: ['auctions'] });
+      client.invalidateQueries({ queryKey: ['auctions-paged'] });
+      client.invalidateQueries({ queryKey: ['participated-auctions'] });
+      client.invalidateQueries({ queryKey: ['my-purchases'] });
     },
   });
 };

@@ -39,6 +39,7 @@ public class AuctionResponse {
     private Integer myRank;
     private Boolean myBidUnique;
     private Integer totalBids;
+    private BigDecimal buyNowPrice;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -120,6 +121,9 @@ public class AuctionResponse {
 
     public Integer getTotalBids() { return totalBids; }
     public void setTotalBids(Integer totalBids) { this.totalBids = totalBids; }
+
+    public BigDecimal getBuyNowPrice() { return buyNowPrice; }
+    public void setBuyNowPrice(BigDecimal buyNowPrice) { this.buyNowPrice = buyNowPrice; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

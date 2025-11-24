@@ -9,6 +9,7 @@ type Props = {
   safe?: boolean;
   padding?: number;
   background?: string;
+  maxWidth?: number;
 };
 
 export const Screen = ({
@@ -16,6 +17,7 @@ export const Screen = ({
   scrollable = true,
   padding = 20,
   background,
+  maxWidth = 1080,
 }: Props) => {
   const { colors } = useTheme();
   const Wrapper = scrollable ? ScrollView : View;
@@ -29,7 +31,13 @@ export const Screen = ({
       <Wrapper
         style={[
           styles.container,
-          { paddingHorizontal: padding, backgroundColor: background || colors.background },
+          {
+            paddingHorizontal: padding,
+            backgroundColor: background || colors.background,
+            alignSelf: 'center',
+            width: '100%',
+            maxWidth,
+          },
         ]}
         {...(wrapperProps as any)}
       >
