@@ -90,7 +90,8 @@ public class ProductController {
     @PostMapping("/{id}/image")
     public ResponseEntity<ProductResponse> uploadImage(
             @PathVariable Long id,
-            @RequestParam("file") MultipartFile file) throws IOException {
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(name = "slot", defaultValue = "1") int slot) throws IOException {
 
         Path uploadDir = Paths.get(System.getProperty("user.dir"), "uploads");
         if (!Files.exists(uploadDir)) {
@@ -113,7 +114,8 @@ public class ProductController {
         }
 
         String imageUrl = "/uploads/" + fileName;
-        ProductResponse updated = service.updateImageUrl(id, imageUrl);
+        int safeSlot = (slot == 2 || slot == 3) ? slot : 1;
+        ProductResponse updated = service.updateImageUrl(id, imageUrl, safeSlot);
         System.out.println("CHEMIN UPLOAD UTILISE : " + uploadDir.toAbsolutePath());
 
         return ResponseEntity.ok(updated);

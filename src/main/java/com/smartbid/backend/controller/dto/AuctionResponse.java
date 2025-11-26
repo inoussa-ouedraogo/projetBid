@@ -15,6 +15,8 @@ public class AuctionResponse {
     private String productTitle;
     private String category;
     private String imageUrl;
+    private String imageUrl2;
+    private String imageUrl3;
 
     // Créateur DU PRODUIT
     private Long productCreatedById;
@@ -66,6 +68,12 @@ public class AuctionResponse {
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public String getImageUrl2() { return imageUrl2; }
+    public void setImageUrl2(String imageUrl2) { this.imageUrl2 = imageUrl2; }
+
+    public String getImageUrl3() { return imageUrl3; }
+    public void setImageUrl3(String imageUrl3) { this.imageUrl3 = imageUrl3; }
 
     public Long getProductCreatedById() { return productCreatedById; }
     public void setProductCreatedById(Long productCreatedById) { this.productCreatedById = productCreatedById; }

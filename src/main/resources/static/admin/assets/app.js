@@ -328,7 +328,12 @@ const translations = {
   'Edit Product': 'Modifier le produit',
   'Description': 'Description',
   'Image URL (optional)': 'URL de l’image (optionnel)',
+  'Second image URL (optional)': 'Deuxième image (optionnel)',
+  'Third image URL (optional)': 'Troisième image (optionnel)',
   'Upload image (optional)': 'Téléverser une image (optionnel)',
+  'Upload image (slot 1)': 'Téléverser image (emplacement 1)',
+  'Upload image (slot 2)': 'Téléverser image (emplacement 2)',
+  'Upload image (slot 3)': 'Téléverser image (emplacement 3)',
   'Save': 'Enregistrer',
   'Create': 'Créer',
   'Cancel': 'Annuler',
@@ -572,13 +577,14 @@ async function ViewProducts() {
     tb.innerHTML = '';
     for (const p of items) {
       const tr = document.createElement('tr');
+      const imgs = [p.imageUrl, p.imageUrl2, p.imageUrl3].filter(Boolean);
       tr.innerHTML = `
         <td style="padding:8px;border-bottom:1px solid var(--border);">${p.id ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${p.title ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${p.category ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${p.basePrice ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">
-          ${p.imageUrl ? `<img src="${p.imageUrl}" alt="" style="height:36px;border-radius:6px;border:1px solid var(--border);" />` : '<span class="muted">none</span>'}
+          ${imgs.length ? imgs.map((u, idx) => `<img src="${u}" alt="" title="Image ${idx + 1}" style="height:36px;width:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);margin-right:4px;" />`).join('') : '<span class="muted">none</span>'}
         </td>
         <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn outline btn-edit" data-id="${p.id}">Edit</button>
@@ -609,13 +615,18 @@ async function ViewProducts() {
     const priceId = 'pp-' + Math.random().toString(36).slice(2);
     const descId = 'pd-' + Math.random().toString(36).slice(2);
     const imgId = 'pi-' + Math.random().toString(36).slice(2);
+    const img2Id = 'pi2-' + Math.random().toString(36).slice(2);
+    const img3Id = 'pi3-' + Math.random().toString(36).slice(2);
     const fileId = 'pf-' + Math.random().toString(36).slice(2);
+    const file2Id = 'pf2-' + Math.random().toString(36).slice(2);
+    const file3Id = 'pf3-' + Math.random().toString(36).slice(2);
 
     wrap.innerHTML = '';
     wrap.appendChild(h('form', { id: 'product-form' }, [
       h('h3', {}, isEdit ? 'Edit Product' : 'New Product'),
       h('label', { for: titleId }, 'Title'),
-      h('input', { id: titleId, required: true, value: existing?.title ?? '', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
+      h('input', { id: titleId, required: true, value: existing?.title ?? '', placeholder: 'Max 255 characters', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
+      h('div', { class: 'muted', style: 'font-size:12px;margin:-6px 0 8px;' }, '255 characters maximum'),
       h('label', { for: catId }, 'Category'),
       (function() {
         const sel = h('select', { id: catId, required: true, style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' });
@@ -642,8 +653,18 @@ async function ViewProducts() {
       h('textarea', { id: descId, rows: 3, required: true, style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }, existing?.description ?? ''),
       h('label', { for: imgId }, 'Image URL (optional)'),
       h('input', { id: imgId, placeholder: 'https://via.placeholder.com/300', value: existing?.imageUrl ?? 'https://via.placeholder.com/300', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
-      h('label', { for: fileId }, 'Upload image (optional)'),
+      h('label', { for: fileId }, 'Upload image (slot 1)'),
       h('input', { id: fileId, type: 'file', accept: 'image/*' }),
+
+      h('label', { for: img2Id }, 'Second image URL (optional)'),
+      h('input', { id: img2Id, placeholder: 'https://via.placeholder.com/300', value: existing?.imageUrl2 ?? '', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
+      h('label', { for: file2Id }, 'Upload image (slot 2)'),
+      h('input', { id: file2Id, type: 'file', accept: 'image/*' }),
+
+      h('label', { for: img3Id }, 'Third image URL (optional)'),
+      h('input', { id: img3Id, placeholder: '', value: existing?.imageUrl3 ?? '', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
+      h('label', { for: file3Id }, 'Upload image (slot 3)'),
+      h('input', { id: file3Id, type: 'file', accept: 'image/*' }),
       h('div', { style: 'display:flex;gap:8px;margin-top:10px;' }, [
         h('button', { class: 'btn', type: 'submit' }, isEdit ? 'Save' : 'Create'),
         h('button', { class: 'btn outline', type: 'button', onclick: () => { wrap.classList.add('hidden'); wrap.innerHTML = ''; } }, 'Cancel')
@@ -651,6 +672,28 @@ async function ViewProducts() {
     ]));
 
     const form = document.getElementById('product-form');
+
+    async function maybeUploadFiles(productId) {
+      const uploads = [
+        { slot: 1, file: document.getElementById(fileId)?.files?.[0] },
+        { slot: 2, file: document.getElementById(file2Id)?.files?.[0] },
+        { slot: 3, file: document.getElementById(file3Id)?.files?.[0] },
+      ];
+      for (const up of uploads) {
+        if (!up.file) continue;
+        const fd = new FormData();
+        fd.append('file', up.file);
+        try {
+          const res = await apiFetchForm(`/api/products/${productId}/image?slot=${up.slot}`, fd, { method: 'POST' });
+          if (!res.ok) {
+            const msg = await res.text();
+            console.warn(`Image upload failed for slot ${up.slot}:`, msg);
+          }
+        } catch (e) {
+          console.warn(`Upload failed for slot ${up.slot}`, e);
+        }
+      }
+    }
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const payload = {
@@ -658,27 +701,21 @@ async function ViewProducts() {
         category: document.getElementById(catId).value.trim(),
         basePrice: Number(document.getElementById(priceId).value),
         description: document.getElementById(descId).value.trim(),
-        imageUrl: document.getElementById(imgId).value.trim() || 'https://via.placeholder.com/300'
+        imageUrl: document.getElementById(imgId).value.trim() || 'https://via.placeholder.com/300',
+        imageUrl2: document.getElementById(img2Id).value.trim() || undefined,
+        imageUrl3: document.getElementById(img3Id).value.trim() || undefined
       };
       const btn = form.querySelector('button[type="submit"]'); btn.disabled = true;
       try {
         if (isEdit) {
           const res = await apiFetch(`/api/products/${existing.id}`, { method: 'PUT', body: JSON.stringify(payload) });
           if (!res.ok) throw new Error(await res.text());
+          await maybeUploadFiles(existing.id);
         } else {
           const res = await apiFetch('/api/products', { method: 'POST', body: JSON.stringify(payload) });
           if (!res.ok) throw new Error(await res.text());
           const created = await res.json();
-          const fileInput = document.getElementById(fileId);
-          if (fileInput && fileInput.files && fileInput.files[0]) {
-            const fd = new FormData();
-            fd.append('file', fileInput.files[0]);
-            const up = await apiFetchForm(`/api/products/${created.id}/image`, fd, { method: 'POST' });
-            if (!up.ok) {
-              const msg = await up.text();
-              console.warn('Image upload failed:', msg);
-            }
-          }
+          await maybeUploadFiles(created.id);
         }
         wrap.classList.add('hidden'); wrap.innerHTML = '';
         await loadProducts();
@@ -695,6 +732,36 @@ async function ViewProducts() {
     if (!res.ok) { alert('Product not found'); return; }
     const p = await res.json();
     showProductForm(p);
+    renderProductDetails(p);
+  }
+
+  function renderProductDetails(p) {
+    const existing = document.getElementById('product-preview');
+    if (existing) existing.remove();
+    const wrap = document.createElement('div');
+    wrap.id = 'product-preview';
+    wrap.className = 'panel';
+    wrap.style.marginTop = '10px';
+    const imgs = [p.imageUrl, p.imageUrl2, p.imageUrl3].filter(Boolean);
+    wrap.innerHTML = `
+      <h4 style="margin:0 0 8px 0;">Preview</h4>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;border:1px solid var(--border);border-radius:8px;padding:8px;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            ${imgs.length ? imgs.map((u, idx) => `<img src="${u}" alt="" title="Image ${idx + 1}" style="height:64px;width:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border);" />`).join('') : '<span class="muted">Aucune image</span>'}
+          </div>
+        </div>
+      </div>
+    `;
+    const formWrap = document.getElementById('product-form-wrap');
+    if (formWrap && formWrap.parentNode) {
+      // insert preview after form
+      if (formWrap.nextSibling) {
+        formWrap.parentNode.insertBefore(wrap, formWrap.nextSibling);
+      } else {
+        formWrap.parentNode.appendChild(wrap);
+      }
+    }
   }
 
   async function uploadImage(id) {
@@ -704,10 +771,12 @@ async function ViewProducts() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
+      const slotInput = prompt('Image slot (1 = principale, 2 = vignette 2, 3 = vignette 3)', '1');
+      const slot = Math.max(1, Math.min(3, Number(slotInput) || 1));
       const fd = new FormData();
       fd.append('file', file);
       try {
-        const res = await apiFetchForm(`/api/products/${id}/image`, fd, { method: 'POST' });
+        const res = await apiFetchForm(`/api/products/${id}/image?slot=${slot}`, fd, { method: 'POST' });
         if (!res.ok) throw new Error(await res.text());
         await loadProducts();
       } catch (e) {

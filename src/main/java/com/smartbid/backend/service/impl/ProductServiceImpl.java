@@ -49,6 +49,8 @@ public class ProductServiceImpl implements ProductService {
         }
     
         p.setImageUrl(req.getImageUrl());
+        p.setImageUrl2(req.getImageUrl2());
+        p.setImageUrl3(req.getImageUrl3());
     
         // 🆕 Lier le créateur pour visibilité côté REPRESENTANT
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -141,6 +143,8 @@ public class ProductServiceImpl implements ProductService {
         }
 
         if (req.getImageUrl() != null) p.setImageUrl(req.getImageUrl());
+        if (req.getImageUrl2() != null) p.setImageUrl2(req.getImageUrl2());
+        if (req.getImageUrl3() != null) p.setImageUrl3(req.getImageUrl3());
 
         Product saved = productRepo.save(p);
         return toResponse(saved);
@@ -157,10 +161,16 @@ public class ProductServiceImpl implements ProductService {
 
     // === UPDATE IMAGE ONLY ===
     @Override
-    public ProductResponse updateImageUrl(Long id, String imageUrl) {
+    public ProductResponse updateImageUrl(Long id, String imageUrl, int slot) {
         Product product = productRepo.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Product not found"));
-        product.setImageUrl(imageUrl);
+        if (slot == 2) {
+            product.setImageUrl2(imageUrl);
+        } else if (slot == 3) {
+            product.setImageUrl3(imageUrl);
+        } else {
+            product.setImageUrl(imageUrl);
+        }
         Product saved = productRepo.save(product);
         return toResponse(saved);
     }
@@ -179,8 +189,15 @@ public class ProductServiceImpl implements ProductService {
         }
 
         r.setImageUrl(p.getImageUrl());
+        r.setImageUrl2(p.getImageUrl2());
+        r.setImageUrl3(p.getImageUrl3());
         r.setCreatedAt(p.getCreatedAt());
         r.setUpdatedAt(p.getUpdatedAt());
+
+        if (p.getCreatedBy() != null) {
+            r.setCreatedById(p.getCreatedBy().getId());
+            r.setCreatedByName(p.getCreatedBy().getName());
+        }
         return r;
     }
 }

@@ -14,7 +14,7 @@ public interface ProductService {
     void delete(Long id);
 
     // ✅ Nouvelle méthode pour mettre à jour l’image
-    ProductResponse updateImageUrl(Long id, String imageUrl);
+    ProductResponse updateImageUrl(Long id, String imageUrl, int slot);
 
     // Liste publique (tous les produits, sans restriction de rôle) — utile pour l’app mobile
     List<ProductResponse> listAll(String q);

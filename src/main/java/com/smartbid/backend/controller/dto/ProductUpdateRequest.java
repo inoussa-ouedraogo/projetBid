@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 
 public class ProductUpdateRequest {
 
-    @Size(max = 150)
+    @Size(max = 255)
     private String title;
 
     private String description;
@@ -20,6 +20,12 @@ public class ProductUpdateRequest {
 
     @Size(max = 1024)
     private String imageUrl;
+
+    @Size(max = 1024)
+    private String imageUrl2;
+
+    @Size(max = 1024)
+    private String imageUrl3;
 
     // Getters/Setters
     public String getTitle() { return title; }
@@ -36,4 +42,10 @@ public class ProductUpdateRequest {
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public String getImageUrl2() { return imageUrl2; }
+    public void setImageUrl2(String imageUrl2) { this.imageUrl2 = imageUrl2; }
+
+    public String getImageUrl3() { return imageUrl3; }
+    public void setImageUrl3(String imageUrl3) { this.imageUrl3 = imageUrl3; }
 }

@@ -42,8 +42,8 @@ public class Product {
     private Long id;
 
     @NotBlank(message = "Title is required")
-    @Size(max = 150, message = "Title must be at most 150 characters")
-    @Column(nullable = false, length = 150)
+    @Size(max = 255, message = "Title must be at most 255 characters")
+    @Column(nullable = false, length = 255)
     private String title;
 
     @NotBlank(message = "Description is required")
@@ -63,6 +63,14 @@ public class Product {
     @Size(max = 1024)
     @Column(nullable = false, columnDefinition = "TEXT")
     private String imageUrl;
+
+    @Size(max = 1024)
+    @Column(name = "image_url_2", columnDefinition = "TEXT")
+    private String imageUrl2;
+
+    @Size(max = 1024)
+    @Column(name = "image_url_3", columnDefinition = "TEXT")
+    private String imageUrl3;
 
     // Creator of this product (nullable for legacy rows)
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
@@ -110,6 +118,12 @@ public void setCategory(ProductCategory category) { this.category = category; }
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public String getImageUrl2() { return imageUrl2; }
+    public void setImageUrl2(String imageUrl2) { this.imageUrl2 = imageUrl2; }
+
+    public String getImageUrl3() { return imageUrl3; }
+    public void setImageUrl3(String imageUrl3) { this.imageUrl3 = imageUrl3; }
 
     public User getCreatedBy() { return createdBy; }
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }

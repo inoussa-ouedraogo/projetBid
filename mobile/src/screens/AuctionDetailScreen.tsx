@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Image, Modal, Text, TextInput, TouchableOpacity, View, ScrollView, Share } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -46,6 +46,16 @@ const AuctionDetailScreen = () => {
   const buyNowMutation = useBuyNowMutation(route.params?.id as number);
   const buyNowPrice = auction?.buyNowPrice ?? auction?.minBid ?? auction?.maxBid;
   const { user } = useAuth();
+  const gallery = useMemo(
+    () => [auction?.imageUrl, auction?.imageUrl2, auction?.imageUrl3].filter(Boolean) as string[],
+    [auction?.imageUrl, auction?.imageUrl2, auction?.imageUrl3]
+  );
+  const [selectedImage, setSelectedImage] = useState<string | undefined>(gallery[0]);
+  const mainImage = selectedImage || gallery[0];
+
+  useEffect(() => {
+    setSelectedImage(gallery[0]);
+  }, [gallery.join('|'), auction?.id]);
 
   const similarFilters = useMemo(
     () =>
@@ -100,12 +110,71 @@ const AuctionDetailScreen = () => {
   return (
     <Screen>
       <View style={{ gap: 20 }}>
-        {auction.imageUrl ? (
-          <Image
-            source={{ uri: resolveImageUrl(auction.imageUrl) }}
-            style={{ width: '100%', height: 220, borderRadius: 24 }}
-          />
-        ) : null}
+        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'stretch' }}>
+          <View style={{ width: 78, gap: 10 }}>
+            {gallery.length ? (
+              gallery.map((img) => {
+                const active = selectedImage === img;
+                return (
+                  <TouchableOpacity
+                    key={img}
+                    onPress={() => setSelectedImage(img)}
+                    style={{
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      borderWidth: active ? 2 : 1,
+                      borderColor: active ? palette.primary : colors.border,
+                    }}
+                  >
+                    <Image
+                      source={{ uri: resolveImageUrl(img) }}
+                      style={{ width: '100%', aspectRatio: 1, backgroundColor: colors.elevated }}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              <View
+                style={{
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  height: 78,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.elevated,
+                }}
+              >
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>No image</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={{ flex: 1 }}>
+            {mainImage ? (
+              <Image
+                source={{ uri: resolveImageUrl(mainImage) }}
+                style={{ width: '100%', height: 260, borderRadius: 24, backgroundColor: colors.elevated }}
+                resizeMode="cover"
+              />
+            ) : (
+              <View
+                style={{
+                  height: 260,
+                  borderRadius: 24,
+                  backgroundColor: colors.elevated,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <Text style={{ color: colors.textSecondary }}>Aucune image</Text>
+              </View>
+            )}
+          </View>
+        </View>
 
         <View
           style={{

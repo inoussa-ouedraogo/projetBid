@@ -358,6 +358,8 @@ public AuctionResponse approve(Long id) {
             r.setProductTitle(a.getProduct().getTitle());
             r.setCategory(a.getProduct().getCategory() != null ? a.getProduct().getCategory().name() : null);
             r.setImageUrl(a.getProduct().getImageUrl());
+            r.setImageUrl2(a.getProduct().getImageUrl2());
+            r.setImageUrl3(a.getProduct().getImageUrl3());
         }
 
         r.setTitle(a.getTitle());

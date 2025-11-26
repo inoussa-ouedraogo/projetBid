@@ -34,6 +34,8 @@ export interface Auction {
   type: AuctionType;
   category?: string;
   imageUrl?: string;
+   imageUrl2?: string;
+   imageUrl3?: string;
   isActive?: boolean;
 }
 
@@ -44,6 +46,8 @@ export interface Product {
   basePrice: number;
   category: string;
   imageUrl?: string;
+  imageUrl2?: string;
+  imageUrl3?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -48,6 +48,8 @@ public class AuctionMapper {
             dto.setProductTitle(product.getTitle());
             dto.setCategory(product.getCategory() != null ? product.getCategory().name() : null);
             dto.setImageUrl(product.getImageUrl());
+            dto.setImageUrl2(product.getImageUrl2());
+            dto.setImageUrl3(product.getImageUrl3());
         }
 
         return dto;
