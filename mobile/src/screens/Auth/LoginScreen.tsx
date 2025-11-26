@@ -7,6 +7,7 @@ import { InputField } from '@/components/forms/InputField';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/context/AuthContext';
+import { KibsiLogo } from '@/components/brand/KibsiLogo';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -32,16 +33,9 @@ const LoginScreen = ({ navigation }: Props) => {
 
   return (
     <Screen>
-      <View style={{ gap: 32 }}>
-        <View>
-          <Text style={{ color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 2 }}>
-            SmartBid Mobile
-          </Text>
-          <Text style={{ fontSize: 30, fontWeight: '700', color: colors.textPrimary, marginTop: 8 }}>
-            Connecte-toi et suis les encheres inversees en direct.
-          </Text>
-        </View>
-        <View style={{ gap: 20 }}>
+      <View style={{ gap: 32, alignItems: 'center' }}>
+        <KibsiLogo subtitle="Connecte-toi et suis les encheres inversees en direct." />
+        <View style={{ gap: 20, width: '100%' }}>
           <InputField
             label="Email"
             placeholder="ton.email@smartbid.com"

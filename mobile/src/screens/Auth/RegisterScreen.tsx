@@ -7,6 +7,7 @@ import { InputField } from '@/components/forms/InputField';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/context/AuthContext';
+import { KibsiLogo } from '@/components/brand/KibsiLogo';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
@@ -45,11 +46,9 @@ const RegisterScreen = ({ navigation }: Props) => {
 
   return (
     <Screen>
-      <View style={{ gap: 24 }}>
-        <Text style={{ fontSize: 28, fontWeight: '700', color: colors.textPrimary }}>
-          Cree ton compte SmartBid
-        </Text>
-        <View style={{ gap: 18 }}>
+      <View style={{ gap: 24, alignItems: 'center' }}>
+        <KibsiLogo subtitle="Cree ton compte et rejoins Kibsi" />
+        <View style={{ gap: 18, width: '100%' }}>
           <InputField
             label="Nom complet"
             value={form.name}
