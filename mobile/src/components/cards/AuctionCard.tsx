@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Auction } from '@/api/types';
 import { useTheme } from '@/hooks/useTheme';
@@ -12,9 +12,10 @@ import { useFavoritesStore } from '@/store/useFavoritesStore';
 type Props = {
   auction: Auction;
   onPress?: (auction: Auction) => void;
+  onShare?: (auction: Auction) => void;
 };
 
-export const AuctionCard = ({ auction, onPress }: Props) => {
+export const AuctionCard = ({ auction, onPress, onShare }: Props) => {
   const { colors, palette } = useTheme();
   const toggleFavorite = useFavoritesStore((state) => state.toggle);
   const isFavorite = useFavoritesStore((state) => state.isFavorite(auction.id));
@@ -36,25 +37,60 @@ export const AuctionCard = ({ auction, onPress }: Props) => {
       activeOpacity={0.8}
     >
       <View style={styles.imageWrapper}>
-        <TouchableOpacity
-          onPress={() => toggleFavorite(auction.id)}
-          activeOpacity={0.7}
+        <View
           style={{
             position: 'absolute',
             top: 12,
             left: 12,
             zIndex: 2,
-            backgroundColor: colors.surface + 'dd',
-            borderRadius: 18,
-            padding: 8,
+            flexDirection: 'column',
+            gap: 8,
           }}
         >
-          <Ionicons
-            name={isFavorite ? 'heart' : 'heart-outline'}
-            size={18}
-            color={isFavorite ? palette.primary : colors.textPrimary}
-          />
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => toggleFavorite(auction.id)}
+            activeOpacity={0.7}
+            style={{
+              backgroundColor: colors.surface + 'dd',
+              borderRadius: 18,
+              padding: 8,
+            }}
+          >
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={18}
+              color={isFavorite ? palette.primary : colors.textPrimary}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={async () => {
+              if (onShare) {
+                onShare(auction);
+                return;
+              }
+              try {
+                const url = auction.imageUrl ? resolveImageUrl(auction.imageUrl) : undefined;
+                await Share.share({
+                  message: `SmartBid · ${auction.title} · Mise min ${formatCurrency(
+                    auction.minBid,
+                    auction.currency
+                  )} · Fin ${formatRelative(auction.endAt)}`,
+                  url,
+                });
+              } catch {
+                // no-op
+              }
+            }}
+            activeOpacity={0.7}
+            style={{
+              backgroundColor: colors.surface + 'dd',
+              borderRadius: 18,
+              padding: 8,
+            }}
+          >
+            <Ionicons name="share-social-outline" size={18} color={colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
 
         {auction.imageUrl ? (
           <Image source={{ uri: resolveImageUrl(auction.imageUrl) }} style={styles.image} />

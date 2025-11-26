@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, Image, Modal, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
+import { Alert, Image, Modal, Text, TextInput, TouchableOpacity, View, ScrollView, Share } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Screen } from '@/components/layout/Screen';
@@ -194,6 +194,23 @@ const AuctionDetailScreen = () => {
               loading={buyNowMutation.isPending}
             />
           ) : null}
+          <PrimaryButton
+            label="Partager l'offre"
+            onPress={async () => {
+              try {
+                const url = auction.imageUrl ? resolveImageUrl(auction.imageUrl) : undefined;
+                await Share.share({
+                  message: `SmartBid · ${auction.title} · Mise min ${formatCurrency(
+                    auction.minBid,
+                    auction.currency
+                  )} · Fin ${formatDate(auction.endAt)}`,
+                  url,
+                });
+              } catch {
+                // no-op
+              }
+            }}
+          />
         </View>
 
         {buyNowPrice ? (
