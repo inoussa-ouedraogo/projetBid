@@ -57,6 +57,12 @@ public class AdminUserController {
         public java.time.Instant updatedAt;
     }
 
+    public static class CreditRequest {
+        public java.math.BigDecimal amount;
+        public java.math.BigDecimal getAmount() { return amount; }
+        public void setAmount(java.math.BigDecimal amount) { this.amount = amount; }
+    }
+
     private static AdminUserResponse map(User u) {
         AdminUserResponse r = new AdminUserResponse();
         r.id = u.getId();
@@ -128,6 +134,24 @@ public class AdminUserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Invalid role. Allowed: VISITOR, USER, ADMIN, REPRESENTANT");
         }
+        userRepository.save(u);
+        return ResponseEntity.ok(map(u));
+    }
+
+    @PutMapping("/{id}/credit")
+    public ResponseEntity<?> credit(@PathVariable Long id, @RequestBody CreditRequest req) {
+        if (req == null || req.getAmount() == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Field 'amount' is required");
+        }
+        if (req.getAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Amount must be > 0");
+        }
+        Optional<User> opt = userRepository.findById(id);
+        if (opt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+        User u = opt.get();
+        u.setWalletBalance(u.getWalletBalance().add(req.getAmount()));
         userRepository.save(u);
         return ResponseEntity.ok(map(u));
     }

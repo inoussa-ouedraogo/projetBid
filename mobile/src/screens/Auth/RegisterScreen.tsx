@@ -18,6 +18,7 @@ const RegisterScreen = ({ navigation }: Props) => {
     name: '',
     email: '',
     phone: '',
+    city: '',
     password: '',
   });
   const [loading, setLoading] = useState(false);
@@ -34,6 +35,7 @@ const RegisterScreen = ({ navigation }: Props) => {
     try {
       const res = await register({
         ...form,
+        city: form.city.trim() || undefined,
         consentRgpd: true,
       });
       setMessage(res.message);
@@ -67,6 +69,12 @@ const RegisterScreen = ({ navigation }: Props) => {
             value={form.phone}
             onChangeText={(text) => handleChange('phone', text)}
             placeholder="+33..."
+          />
+          <InputField
+            label="Ville"
+            value={form.city}
+            onChangeText={(text) => handleChange('city', text)}
+            placeholder="Abidjan, Paris..."
           />
           <InputField
             label="Mot de passe"

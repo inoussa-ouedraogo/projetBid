@@ -56,6 +56,10 @@ private Product product;
     @Column(length = 2000)
     private String description;
 
+    @Size(max = 120)
+    @Column(length = 120)
+    private String city;
+
     @PositiveOrZero(message = "Participation fee must be >= 0")
     @Column(name = "participation_fee", precision = 15, scale = 2, nullable = false)
     private BigDecimal participationFee = BigDecimal.ZERO;
@@ -98,6 +102,10 @@ private Product product;
 
     @Column(name = "winner_bid_id")
     private Long winnerBidId;
+
+    @Positive
+    @Column(name = "buy_now_price", precision = 15, scale = 2)
+    private BigDecimal buyNowPrice;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -150,6 +158,8 @@ private Product product;
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
     public BigDecimal getParticipationFee() { return participationFee; }
     public void setParticipationFee(BigDecimal participationFee) { this.participationFee = participationFee; }
     public String getCurrency() { return currency; }
@@ -172,6 +182,8 @@ private Product product;
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
     public Long getWinnerBidId() { return winnerBidId; }
     public void setWinnerBidId(Long winnerBidId) { this.winnerBidId = winnerBidId; }
+    public BigDecimal getBuyNowPrice() { return buyNowPrice; }
+    public void setBuyNowPrice(BigDecimal buyNowPrice) { this.buyNowPrice = buyNowPrice; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     

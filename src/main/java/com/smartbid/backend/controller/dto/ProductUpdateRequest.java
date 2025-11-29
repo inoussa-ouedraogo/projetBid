@@ -27,6 +27,9 @@ public class ProductUpdateRequest {
     @Size(max = 1024)
     private String imageUrl3;
 
+    @Positive
+    private BigDecimal commissionRate;
+
     // Getters/Setters
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -48,4 +51,6 @@ public class ProductUpdateRequest {
 
     public String getImageUrl3() { return imageUrl3; }
     public void setImageUrl3(String imageUrl3) { this.imageUrl3 = imageUrl3; }
+    public BigDecimal getCommissionRate() { return commissionRate; }
+    public void setCommissionRate(BigDecimal commissionRate) { this.commissionRate = commissionRate; }
 }

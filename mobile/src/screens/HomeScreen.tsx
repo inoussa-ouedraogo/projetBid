@@ -9,15 +9,18 @@ import { AuctionCard } from '@/components/cards/AuctionCard';
 import { useAuctions, useProducts } from '@/hooks/queries';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
-import { formatCurrency } from '@/utils/format';
+import { formatCity, formatCurrency } from '@/utils/format';
 import { RootStackParamList } from '@/navigation/types';
 import { LoadingIndicator } from '@/components/feedback/LoadingIndicator';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { SearchBar } from '@/components/forms/SearchBar';
+import { useAuctionLocation } from '@/hooks/useAuctionLocation';
+import { LocationScopeToggle } from '@/components/common/LocationScopeToggle';
 
 const HomeScreen = () => {
   const { user } = useAuth();
   const { colors, palette } = useTheme();
+  const { scope, setScope, city, cityFilter } = useAuctionLocation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -29,16 +32,23 @@ const HomeScreen = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const runningFilters = useMemo(() => ({ status: 'RUNNING' as const }), []);
+  const runningFilters = useMemo(
+    () => ({ status: 'RUNNING' as const, city: cityFilter }),
+    [cityFilter]
+  );
   const activeFilters = useMemo(
     () => ({
       status: 'RUNNING' as const,
       category: selectedCategory || undefined,
       search: debouncedSearch || undefined,
+      city: cityFilter,
     }),
-    [selectedCategory, debouncedSearch]
+    [selectedCategory, debouncedSearch, cityFilter]
   );
-  const scheduledFilters = useMemo(() => ({ status: 'SCHEDULED' as const }), []);
+  const scheduledFilters = useMemo(
+    () => ({ status: 'SCHEDULED' as const, city: cityFilter }),
+    [cityFilter]
+  );
 
   const { data: allRunning = [] } = useAuctions(runningFilters);
   const { data: activeAuctions = [], isLoading: loadingActive } = useAuctions(activeFilters);
@@ -60,7 +70,9 @@ const HomeScreen = () => {
     [allRunning]
   );
 
-  const subtitle =
+  const locationLabel =
+    scope === 'city' && city ? `Ta ville (${formatCity(city)})` : 'Tout le pays';
+  const subtitleBase =
     debouncedSearch && selectedCategory
       ? `Categorie ${selectedCategory} - filtre "${debouncedSearch}"`
       : debouncedSearch
@@ -68,6 +80,7 @@ const HomeScreen = () => {
       : selectedCategory
       ? `Categorie ${selectedCategory}`
       : 'Mises inversees en temps reel';
+  const subtitle = `${subtitleBase} • ${locationLabel}`;
 
   return (
     <Screen>
@@ -81,6 +94,7 @@ const HomeScreen = () => {
             placeholder="Cherche un produit ou une enchere"
             onClear={() => setSearch('')}
           />
+          <LocationScopeToggle city={city} scope={scope} onChange={setScope} />
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
             {categories.map((category) => {

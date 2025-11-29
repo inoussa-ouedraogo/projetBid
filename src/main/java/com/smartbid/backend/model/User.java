@@ -41,6 +41,9 @@ public class User {
     // Téléphone (optionnel)
     private String phone;
 
+    @Column(length = 120)
+    private String city;
+
     // Rôle de l'utilisateur
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -117,6 +120,9 @@ private Instant tokenExpiry;
     public void setPhone(String phone) {
         this.phone = phone;
     }
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
 
     public Role getRole() {
         return role;

@@ -6,6 +6,7 @@ type AuctionFilters = {
   category?: string;
   productId?: number;
   search?: string;
+  city?: string;
 };
 
 type PagedFilters = AuctionFilters & {

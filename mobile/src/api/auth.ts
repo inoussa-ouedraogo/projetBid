@@ -10,6 +10,7 @@ type RegisterPayload = {
   name: string;
   email: string;
   phone?: string;
+  city?: string;
   password: string;
   consentRgpd: boolean;
 };
@@ -18,6 +19,7 @@ type UpdateProfilePayload = {
   name?: string;
   phone?: string;
   password?: string;
+  city?: string;
 };
 
 export const login = (payload: LoginPayload) =>

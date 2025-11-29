@@ -10,15 +10,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.smartbid.backend.controller.dto.BidCreateRequest;
 import com.smartbid.backend.controller.dto.BidResponse;
 import com.smartbid.backend.model.Auction;
 import com.smartbid.backend.model.AuctionStatus;
 import com.smartbid.backend.model.Bid;
+import com.smartbid.backend.model.RevenueEntry;
 import com.smartbid.backend.model.User;
 import com.smartbid.backend.repository.AuctionRepository;
 import com.smartbid.backend.repository.BidRepository;
+import com.smartbid.backend.repository.RevenueEntryRepository;
 import com.smartbid.backend.repository.UserRepository;
 import com.smartbid.backend.service.BidService;
 import com.smartbid.backend.service.RankService;
@@ -31,15 +35,18 @@ public class BidServiceImpl implements BidService {
     private final AuctionRepository auctionRepo;
     private final UserRepository userRepo;
     private final RankService rankService; // ✅ AJOUT
+    private final RevenueEntryRepository revenueRepo;
 
     public BidServiceImpl(BidRepository bidRepo,
                           AuctionRepository auctionRepo,
                           UserRepository userRepo,
-                          RankService rankService) {      // ✅ AJOUT
+                          RankService rankService,
+                          RevenueEntryRepository revenueRepo) {      // ✅ AJOUT
         this.bidRepo = bidRepo;
         this.auctionRepo = auctionRepo;
         this.userRepo = userRepo;
         this.rankService = rankService;                  // ✅ AJOUT
+        this.revenueRepo = revenueRepo;
     }
 
     @Override
@@ -68,6 +75,22 @@ public class BidServiceImpl implements BidService {
         }
         if (req.getAmount().compareTo(a.getMinBid()) < 0 || req.getAmount().compareTo(a.getMaxBid()) > 0) {
             throw new IllegalArgumentException("Bid must be between minBid and maxBid");
+        }
+
+        // Participation fee debit + revenue
+        if (a.getParticipationFee() != null && a.getParticipationFee().compareTo(java.math.BigDecimal.ZERO) > 0) {
+            if (user.getWalletBalance() == null || user.getWalletBalance().compareTo(a.getParticipationFee()) < 0) {
+                throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED, "Solde insuffisant pour couvrir les frais de participation. Recharge ton compte.");
+            }
+            user.setWalletBalance(user.getWalletBalance().subtract(a.getParticipationFee()));
+            userRepo.save(user);
+
+            RevenueEntry fee = new RevenueEntry();
+            fee.setType(RevenueEntry.RevenueType.PARTICIPATION_FEE);
+            fee.setAmount(a.getParticipationFee());
+            fee.setAuctionId(a.getId());
+            fee.setUserId(user.getId());
+            revenueRepo.save(fee);
         }
 
         // Persist

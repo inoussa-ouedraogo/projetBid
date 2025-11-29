@@ -14,6 +14,7 @@ export interface Auction {
   productTitle: string;
   title: string;
   description: string;
+  city?: string;
   participationFee: number;
   currency: string;
   minBid: number;
@@ -44,6 +45,7 @@ export interface Product {
   title: string;
   description: string;
   basePrice: number;
+  commissionRate?: number;
   category: string;
   imageUrl?: string;
   imageUrl2?: string;
@@ -80,6 +82,7 @@ export interface MeResponse {
   email: string;
   name: string;
   phone?: string;
+  city?: string;
   role: string;
   isVerified: boolean;
   walletBalance: number;

@@ -101,7 +101,7 @@ const Router = {
       if (!state.token) { location.hash = '#/login'; return; }
       if (!state.me) await loadMe();
       const role = state.me && state.me.role;
-const adminOnly = (h === '#/users' || h === '#/drafts' || h === '#/rep-drafts');
+const adminOnly = (h === '#/users' || h === '#/drafts' || h === '#/rep-drafts' || h === '#/commission');
 const repOnly = (h === '#/my-bidders');
 if (!role) { location.hash = '#/login'; return; }
 if (adminOnly && role !== 'ADMIN') { location.hash = '#/login'; return; }
@@ -193,6 +193,12 @@ async function ViewDashboard() {
         h('div', { class: 'kpi-sub' }, 'Products in catalogue')
       ]),
       h('div', { class: 'kpi-card' }, [
+        h('div', { class: 'kpi-dot' }, '💰'),
+        h('div', { class: 'kpi-label' }, 'Revenu admin'),
+        h('div', { class: 'kpi-value', id: 'kpi-revenue' }, '—'),
+        h('div', { class: 'kpi-sub', id: 'kpi-revenue-sub' }, 'Commissions + participations')
+      ]),
+      h('div', { class: 'kpi-card' }, [
         h('div', { class: 'kpi-dot' }, '🟢'),
         h('div', { class: 'kpi-label' }, 'Running'),
         h('div', { class: 'kpi-value', id: 'kpi-running' }, '—'),
@@ -224,9 +230,10 @@ async function ViewDashboard() {
 
   // Chargement des vraies valeurs
   try {
-    const [prodRes, aucRes] = await Promise.all([
+    const [prodRes, aucRes, revRes] = await Promise.all([
       apiFetch('/api/products'),
       apiFetch('/api/auctions'),
+      apiFetch('/api/admin/revenue/summary'),
     ]);
     const products = prodRes.ok ? await prodRes.json() : [];
     const auctions = aucRes.ok ? await aucRes.json() : [];
@@ -240,6 +247,14 @@ async function ViewDashboard() {
 
     const extra = document.getElementById('kpi-auctions-extra');
     if (extra) extra.textContent = `${auctions.length} total · ${running} running`;
+
+    if (revRes.ok) {
+      const rev = await revRes.json();
+      const fmt = (n) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(n);
+      document.getElementById('kpi-revenue').textContent = fmt(rev.total || 0);
+      const sub = document.getElementById('kpi-revenue-sub');
+      if (sub) sub.textContent = `Com: ${fmt(rev.commissions || 0)} · Fees: ${fmt(rev.participationFees || 0)}`;
+    }
   } catch (e) {
     console.error(e);
   }
@@ -818,6 +833,8 @@ async function ViewAuctions() {
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Title</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Status</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Product</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Base Price</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Revenue</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Min/Max</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Start/End</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Actions</th>
@@ -863,8 +880,10 @@ async function ViewAuctions() {
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.title ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.status ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${fmtMoney(a.basePrice || 0, a.currency || 'XOF')}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${fmtMoney(a.revenueTotal || 0, a.currency || 'XOF')}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.minBid ?? ''} / ${a.maxBid ?? ''} ${a.currency ?? ''}</td>
-        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} â†’ ${end}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} → ${end}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn outline btn-edit" data-id="${a.id}">Edit</button>
           <button class="btn outline btn-start" data-id="${a.id}">Start</button>
@@ -889,6 +908,8 @@ async function ViewAuctions() {
     const pidId = 'ap-' + Math.random().toString(36).slice(2);
     const titleId = 'at-' + Math.random().toString(36).slice(2);
     const descId = 'ad-' + Math.random().toString(36).slice(2);
+    const cityId = 'aci-' + Math.random().toString(36).slice(2);
+    const feeId = 'afe-' + Math.random().toString(36).slice(2);
     const minId = 'amin-' + Math.random().toString(36).slice(2);
     const maxId = 'amax-' + Math.random().toString(36).slice(2);
     const curId = 'acur-' + Math.random().toString(36).slice(2);
@@ -905,6 +926,10 @@ async function ViewAuctions() {
       h('input', { id: titleId, value: existing?.title ?? '', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
       h('label', { for: descId }, 'Description'),
       h('textarea', { id: descId, rows: 3, style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }, existing?.description ?? ''),
+      h('label', { for: cityId }, 'City'),
+      h('input', { id: cityId, value: existing?.city ?? '', placeholder: 'Abidjan, Paris...', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
+      h('label', { for: feeId }, 'Participation Fee'),
+      h('input', { id: feeId, type: 'number', step: '0.01', min: 0, value: existing?.participationFee ?? '', placeholder: 'Ex: 500', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
       h('label', { for: minId }, 'Min Bid'),
       h('input', { id: minId, type: 'number', step: '0.01', required: true, value: existing?.minBid ?? '', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
       h('label', { for: maxId }, 'Max Bid'),
@@ -933,6 +958,8 @@ async function ViewAuctions() {
         productId: Number(document.getElementById(pidId).value),
         title: document.getElementById(titleId).value.trim(),
         description: document.getElementById(descId).value.trim(),
+        participationFee: Number(document.getElementById(feeId).value) || 0,
+        city: (document.getElementById(cityId).value || '').trim() || undefined,
         minBid: Number(document.getElementById(minId).value),
         maxBid: Number(document.getElementById(maxId).value),
         currency: (document.getElementById(curId).value.trim() || 'EUR').toUpperCase(),
@@ -1115,6 +1142,7 @@ async function ViewUsers() {
             <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Email</th>
             <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Role</th>
             <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Status</th>
+            <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Wallet</th>
             <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Actions</th>
           </tr>
         </thead>
@@ -1150,15 +1178,18 @@ async function ViewUsers() {
           </select>
         </td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${u.status ? 'ACTIVE' : 'BLOCKED'}</td>
-        <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;">
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(u.walletBalance || 0)}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn outline btn-toggle" data-id="${u.id}">${u.status ? 'Block' : 'Activate'}</button>
           <button class="btn outline btn-save-role" data-id="${u.id}">Save Role</button>
+          <button class="btn outline btn-credit" data-id="${u.id}">Credit</button>
         </td>
       `;
       tb.appendChild(tr);
     }
     tb.querySelectorAll('.btn-toggle').forEach(b => b.addEventListener('click', () => toggleStatus(b.dataset.id)));
     tb.querySelectorAll('.btn-save-role').forEach(b => b.addEventListener('click', () => saveRole(b.dataset.id)));
+    tb.querySelectorAll('.btn-credit').forEach(b => b.addEventListener('click', () => creditUser(b.dataset.id)));
   }
 
   async function toggleStatus(id) {
@@ -1178,7 +1209,73 @@ async function ViewUsers() {
     await loadUsers();
   }
 
+  async function creditUser(id) {
+    const amountStr = prompt('Montant à créditer (CFA)');
+    if (!amountStr) return;
+    const amount = Number(amountStr);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert('Montant invalide');
+      return;
+    }
+    const res = await apiFetch(`/api/admin/users/${id}/credit`, { method: 'PUT', body: JSON.stringify({ amount }) });
+    if (!res.ok) alert(await res.text());
+    await loadUsers();
+  }
+
   await loadUsers();
+}
+
+// Commission globale
+async function ViewCommission() {
+  appEl.innerHTML = '';
+  const rateId = 'c-rate-' + Math.random().toString(36).slice(2);
+  const panel = h('div', { class: 'panel', style: 'max-width:480px;display:flex;flex-direction:column;gap:12px;' }, [
+    h('h2', {}, 'Commission globale'),
+    h('p', { class: 'muted' }, 'Pourcentage prélevé sur chaque vente/enchère.'),
+    h('label', { for: rateId }, 'Commission (%)'),
+    h('input', {
+      id: rateId,
+      type: 'number',
+      step: '0.01',
+      min: 0,
+      max: 100,
+      style: 'padding:10px;border-radius:10px;border:1px solid var(--border);background:#0b1220;color:var(--text);'
+    }),
+    h('div', { style: 'display:flex;gap:10px;' }, [
+      h('button', { class: 'btn', id: 'btn-save-commission' }, 'Enregistrer')
+    ])
+  ]);
+  appEl.appendChild(panel);
+
+  try {
+    const res = await apiFetch('/api/admin/commission');
+    if (res.ok) {
+      const data = await res.json();
+      const el = document.getElementById(rateId);
+      if (el) el.value = data.rate ?? '';
+    }
+  } catch (e) {
+    console.warn('Unable to load commission', e);
+  }
+
+  document.getElementById('btn-save-commission').addEventListener('click', async () => {
+    const val = Number(document.getElementById(rateId).value);
+    if (!Number.isFinite(val) || val < 0) {
+      alert('Valeur invalide');
+      return;
+    }
+    const btn = document.getElementById('btn-save-commission');
+    btn.disabled = true;
+    try {
+      const res = await apiFetch('/api/admin/commission', { method: 'PUT', body: JSON.stringify({ rate: val }) });
+      if (!res.ok) throw new Error(await res.text());
+      alert('Commission mise à jour');
+    } catch (e) {
+      alert(e.message || 'Echec sauvegarde');
+    } finally {
+      btn.disabled = false;
+    }
+  });
 }
 
 // Re-bind routes to new views
@@ -1186,9 +1283,10 @@ Router.add('#/products', ViewProducts);
 Router.add('#/auctions', ViewAuctions);
 Router.add('#/bids', ViewBids);
 Router.add('#/users', ViewUsers);
+Router.add('#/commission', ViewCommission);
 
 // If currently on one of these routes, re-render
-if (['#/products','#/auctions','#/bids','#/users'].includes(location.hash)) {
+if (['#/products','#/auctions','#/bids','#/users','#/commission'].includes(location.hash)) {
   Router.go();
 }
 // Purchases view (admin + representant)
@@ -1261,6 +1359,7 @@ async function ViewDrafts() {
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">ID</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Title</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Product</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Revenue</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Min/Max</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Start/End</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Status</th>
@@ -1437,6 +1536,8 @@ async function ViewAuctions2() {
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Title</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Status</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Product</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Base Price</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Revenue</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Min/Max</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Start/End</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Active</th>
@@ -1512,9 +1613,11 @@ async function ViewAuctions2() {
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.id ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.title ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);"><span class="muted">${a.status ?? ''}</span></td>
-        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} Â· ${a.productTitle ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} · ${a.productTitle ?? ''}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${fmtMoney(a.basePrice || 0, a.currency || 'XOF')}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${fmtMoney(a.revenueTotal || 0, a.currency || 'XOF')}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.minBid ?? ''} / ${a.maxBid ?? ''} ${a.currency ?? ''}</td>
-        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} â†’ ${end}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${start} → ${end}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.isActive ? 'YES' : 'NO'}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn outline btn-edit" data-id="${a.id}">Edit</button>
@@ -1552,6 +1655,7 @@ async function ViewAuctions2() {
     const pidId = 'ap-' + Math.random().toString(36).slice(2);
     const titleId = 'at-' + Math.random().toString(36).slice(2);
     const descId = 'ad-' + Math.random().toString(36).slice(2);
+    const cityId = 'aci-' + Math.random().toString(36).slice(2);
     const minId = 'amin-' + Math.random().toString(36).slice(2);
     const maxId = 'amax-' + Math.random().toString(36).slice(2);
     const curId = 'acur-' + Math.random().toString(36).slice(2);
@@ -1559,6 +1663,7 @@ async function ViewAuctions2() {
     const endId = 'aend-' + Math.random().toString(36).slice(2);
     const limitId = 'alimit-' + Math.random().toString(36).slice(2);
     const prodSelId = 'apsel-' + Math.random().toString(36).slice(2);
+    const feeId = 'afe-' + Math.random().toString(36).slice(2);
 
     formWrap.innerHTML = '';
     formWrap.appendChild(h('form', { id: 'auction-form' }, [
@@ -1573,6 +1678,10 @@ async function ViewAuctions2() {
       h('input', { id: titleId, value: existing?.title ?? '', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
       h('label', { for: descId }, 'Description'),
       h('textarea', { id: descId, rows: 3, style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }, existing?.description ?? ''),
+      h('label', { for: cityId }, 'City'),
+      h('input', { id: cityId, value: existing?.city ?? '', placeholder: 'Abidjan, Paris...', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
+      h('label', { for: feeId }, 'Participation Fee'),
+      h('input', { id: feeId, type: 'number', step: '0.01', min: 0, value: existing?.participationFee ?? '', placeholder: 'Ex: 500', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
       h('label', { for: minId }, 'Min Bid'),
       h('input', { id: minId, type: 'number', step: '0.01', required: true, value: existing?.minBid ?? '', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
       h('label', { for: maxId }, 'Max Bid'),
@@ -1627,6 +1736,8 @@ async function ViewAuctions2() {
         productId,
         title: document.getElementById(titleId).value.trim(),
         description: document.getElementById(descId).value.trim(),
+        participationFee: Number(document.getElementById(feeId).value) || 0,
+        city: (document.getElementById(cityId).value || '').trim() || undefined,
         minBid: Number(document.getElementById(minId).value),
         maxBid: Number(document.getElementById(maxId).value),
         currency: (document.getElementById(curId).value.trim() || 'EUR').toUpperCase(),

@@ -36,7 +36,7 @@ public class AdminAuctionController {
     // List all DRAFT auctions (submitted by REPRESENTANT and waiting for validation)
     @GetMapping("/drafts")
     public ResponseEntity<List<AuctionResponse>> listDrafts() {
-        return ResponseEntity.ok(auctionService.list(null, AuctionStatus.DRAFT, null, null));
+        return ResponseEntity.ok(auctionService.list(null, AuctionStatus.DRAFT, null, null, null));
     }
 
     // Approve a DRAFT auction -> SCHEDULED + isActive=true

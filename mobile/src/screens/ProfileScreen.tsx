@@ -3,7 +3,7 @@ import { Alert, Modal, ScrollView, Switch, Text, TouchableOpacity, View } from '
 import { Screen } from '@/components/layout/Screen';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
-import { formatCurrency, formatDate } from '@/utils/format';
+import { formatCity, formatCurrency, formatDate } from '@/utils/format';
 import { PrimaryButton } from '@/components/common/PrimaryButton';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { InputField } from '@/components/forms/InputField';
@@ -21,6 +21,7 @@ const ProfileScreen = () => {
   const [form, setForm] = useState({
     name: '',
     phone: '',
+    city: '',
     password: '',
     confirm: '',
   });
@@ -31,6 +32,7 @@ const ProfileScreen = () => {
         ...prev,
         name: user.name ?? '',
         phone: user.phone ?? '',
+        city: user.city ?? '',
       }));
     }
   }, [user]);
@@ -40,6 +42,7 @@ const ProfileScreen = () => {
     return (
       form.name.trim().length > 0 ||
       form.phone.trim().length > 0 ||
+      form.city.trim().length > 0 ||
       form.password.trim().length > 0
     );
   }, [form]);
@@ -112,6 +115,9 @@ const ProfileScreen = () => {
               {user.name}
             </Text>
             <Text style={{ color: colors.textSecondary }}>{user.email}</Text>
+            {user.city ? (
+              <Text style={{ color: colors.textSecondary }}>Ville: {formatCity(user.city)}</Text>
+            ) : null}
             <Text style={{ color: colors.textSecondary }}>
               Statut: {user.role} · {user.isVerified ? 'Verifie' : 'Non verifie'}
             </Text>
@@ -232,6 +238,12 @@ const ProfileScreen = () => {
                 placeholder="+225 / +33..."
               />
               <InputField
+                label="Ville"
+                value={form.city}
+                onChangeText={(text) => setForm((prev) => ({ ...prev, city: text }))}
+                placeholder="Abidjan, Paris..."
+              />
+              <InputField
                 label="Nouveau mot de passe"
                 secureTextEntry
                 value={form.password}
@@ -260,6 +272,7 @@ const ProfileScreen = () => {
                     await updateProfile({
                       name: form.name.trim() || undefined,
                       phone: form.phone.trim() || undefined,
+                      city: form.city.trim() || undefined,
                       password: form.password.trim() || undefined,
                     });
                     setSuccess('Profil mis à jour');

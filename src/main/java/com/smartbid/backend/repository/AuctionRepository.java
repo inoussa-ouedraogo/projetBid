@@ -39,6 +39,7 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
         WHERE (:productId IS NULL OR p.id = :productId)
           AND (:status IS NULL OR a.status = :status)
           AND (:category IS NULL OR p.category = :category)
+          AND (:city IS NULL OR LOWER(a.city) = :city)
           AND (
             :qLike IS NULL
             OR LOWER(p.title) LIKE :qLike
@@ -49,13 +50,15 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
     List<Auction> search(@Param("productId") Long productId,
                          @Param("status") AuctionStatus status,
                          @Param("category") ProductCategory category,
-                         @Param("qLike") String qLike);
+                         @Param("qLike") String qLike,
+                         @Param("city") String city);
 
     @Query("""
         SELECT a FROM Auction a
         JOIN a.product p
         WHERE (:status IS NULL OR a.status = :status)
           AND (:category IS NULL OR p.category = :category)
+          AND (:city IS NULL OR LOWER(a.city) = :city)
           AND (
             :qLike IS NULL
             OR LOWER(p.title) LIKE :qLike
@@ -66,6 +69,7 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
     Page<Auction> searchPaged(@Param("status") AuctionStatus status,
                               @Param("category") ProductCategory category,
                               @Param("qLike") String qLike,
+                              @Param("city") String city,
                               Pageable pageable);
 
     // 🔁 À démarrer

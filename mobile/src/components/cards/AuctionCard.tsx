@@ -2,7 +2,7 @@ import { Image, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-na
 import { LinearGradient } from 'expo-linear-gradient';
 import { Auction } from '@/api/types';
 import { useTheme } from '@/hooks/useTheme';
-import { formatCurrency, formatRelative } from '@/utils/format';
+import { formatCity, formatCurrency, formatRelative } from '@/utils/format';
 import { resolveImageUrl } from '@/utils/media';
 import { GavelIcon } from '../icons/GavelIcon';
 import { WalletIcon } from '../icons/WalletIcon';
@@ -120,6 +120,15 @@ export const AuctionCard = ({ auction, onPress, onShare }: Props) => {
         <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={2}>
           {auction.description}
         </Text>
+
+        {auction.city ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]} numberOfLines={1}>
+              {formatCity(auction.city)}
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>

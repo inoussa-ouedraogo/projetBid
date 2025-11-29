@@ -17,6 +17,8 @@ public class AuctionResponse {
     private String imageUrl;
     private String imageUrl2;
     private String imageUrl3;
+    private String city;
+    private BigDecimal basePrice;
 
     // Créateur DU PRODUIT
     private Long productCreatedById;
@@ -41,13 +43,14 @@ public class AuctionResponse {
     private Integer myRank;
     private Boolean myBidUnique;
     private Integer totalBids;
-    private BigDecimal buyNowPrice;
     private Instant createdAt;
     private Instant updatedAt;
 
     private AuctionType type;
 
     private Boolean isActive;
+    private BigDecimal buyNowPrice;
+    private BigDecimal revenueTotal;
 
     // Créateur de l’enchère
     private Long createdById;
@@ -62,6 +65,8 @@ public class AuctionResponse {
 
     public String getProductTitle() { return productTitle; }
     public void setProductTitle(String productTitle) { this.productTitle = productTitle; }
+    public BigDecimal getBasePrice() { return basePrice; }
+    public void setBasePrice(BigDecimal basePrice) { this.basePrice = basePrice; }
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
@@ -87,9 +92,11 @@ public class AuctionResponse {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+
     public BigDecimal getParticipationFee() { return participationFee; }
     public void setParticipationFee(BigDecimal participationFee) { this.participationFee = participationFee; }
-
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
 
@@ -153,4 +160,7 @@ public class AuctionResponse {
 
     public String getCreatedByEmail() { return createdByEmail; }
     public void setCreatedByEmail(String createdByEmail) { this.createdByEmail = createdByEmail; }
+
+    public BigDecimal getRevenueTotal() { return revenueTotal; }
+    public void setRevenueTotal(BigDecimal revenueTotal) { this.revenueTotal = revenueTotal; }
 }

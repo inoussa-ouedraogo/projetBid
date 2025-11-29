@@ -23,6 +23,15 @@ export const formatDate = (iso?: string | null) =>
 export const formatRelative = (iso?: string | null) =>
   iso ? dayjs(iso).fromNow() : '--';
 
+export const formatCity = (name?: string | null) => {
+  if (!name) return '';
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+};
+
 export const deriveAuctionStatus = (start?: string, end?: string) => {
   if (!start || !end) {
     return 'Aucune date';

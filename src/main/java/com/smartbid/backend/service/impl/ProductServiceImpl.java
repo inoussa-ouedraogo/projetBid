@@ -51,6 +51,7 @@ public class ProductServiceImpl implements ProductService {
         p.setImageUrl(req.getImageUrl());
         p.setImageUrl2(req.getImageUrl2());
         p.setImageUrl3(req.getImageUrl3());
+        p.setCommissionRate(req.getCommissionRate());
     
         // 🆕 Lier le créateur pour visibilité côté REPRESENTANT
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -145,6 +146,7 @@ public class ProductServiceImpl implements ProductService {
         if (req.getImageUrl() != null) p.setImageUrl(req.getImageUrl());
         if (req.getImageUrl2() != null) p.setImageUrl2(req.getImageUrl2());
         if (req.getImageUrl3() != null) p.setImageUrl3(req.getImageUrl3());
+        if (req.getCommissionRate() != null) p.setCommissionRate(req.getCommissionRate());
 
         Product saved = productRepo.save(p);
         return toResponse(saved);
@@ -191,6 +193,7 @@ public class ProductServiceImpl implements ProductService {
         r.setImageUrl(p.getImageUrl());
         r.setImageUrl2(p.getImageUrl2());
         r.setImageUrl3(p.getImageUrl3());
+        r.setCommissionRate(p.getCommissionRate());
         r.setCreatedAt(p.getCreatedAt());
         r.setUpdatedAt(p.getUpdatedAt());
 

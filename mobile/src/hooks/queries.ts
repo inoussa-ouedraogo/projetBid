@@ -18,6 +18,7 @@ type AuctionFilters = {
   status?: AuctionStatus;
   category?: string;
   search?: string;
+  city?: string;
 };
 
 export const useAuctions = (filters?: AuctionFilters) =>
@@ -31,6 +32,7 @@ export const usePagedAuctions = (filters?: {
   status?: AuctionStatus;
   category?: string;
   search?: string;
+  city?: string;
 }) =>
   useQuery({
     queryKey: ['auctions-paged', filters],

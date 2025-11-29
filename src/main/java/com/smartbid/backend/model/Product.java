@@ -72,6 +72,10 @@ public class Product {
     @Column(name = "image_url_3", columnDefinition = "TEXT")
     private String imageUrl3;
 
+    @Positive
+    @Column(name = "commission_rate", precision = 5, scale = 2)
+    private BigDecimal commissionRate; // pourcentage prélevé sur enchère / achat direct
+
     // Creator of this product (nullable for legacy rows)
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "created_by_id")
@@ -124,6 +128,8 @@ public void setCategory(ProductCategory category) { this.category = category; }
 
     public String getImageUrl3() { return imageUrl3; }
     public void setImageUrl3(String imageUrl3) { this.imageUrl3 = imageUrl3; }
+    public BigDecimal getCommissionRate() { return commissionRate; }
+    public void setCommissionRate(BigDecimal commissionRate) { this.commissionRate = commissionRate; }
 
     public User getCreatedBy() { return createdBy; }
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }

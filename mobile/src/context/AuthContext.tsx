@@ -26,6 +26,7 @@ type RegisterPayload = {
   name: string;
   email: string;
   phone?: string;
+  city?: string;
   password: string;
   consentRgpd: boolean;
 };
@@ -39,7 +40,7 @@ type AuthContextValue = {
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   deleteAccount: () => Promise<void>;
-  updateProfile: (payload: { name?: string; phone?: string; password?: string }) => Promise<void>;
+  updateProfile: (payload: { name?: string; phone?: string; password?: string; city?: string }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -121,7 +122,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       logout,
       refreshProfile,
       deleteAccount,
-      updateProfile: async (payload: { name?: string; phone?: string; password?: string }) => {
+      updateProfile: async (payload: {
+        name?: string;
+        phone?: string;
+        password?: string;
+        city?: string;
+      }) => {
         const updated = await updateProfileRequest(payload);
         setUser(updated);
       },

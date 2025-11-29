@@ -22,6 +22,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/useTheme';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { BuyNowPayload } from '@/api/types';
+import { useAuctionLocation } from '@/hooks/useAuctionLocation';
 
 type TabKey = 'bids' | 'similar' | 'rank';
 
@@ -46,6 +47,7 @@ const AuctionDetailScreen = () => {
   const buyNowMutation = useBuyNowMutation(route.params?.id as number);
   const buyNowPrice = auction?.buyNowPrice ?? auction?.minBid ?? auction?.maxBid;
   const { user } = useAuth();
+  const { cityFilter } = useAuctionLocation();
   const gallery = useMemo(
     () => [auction?.imageUrl, auction?.imageUrl2, auction?.imageUrl3].filter(Boolean) as string[],
     [auction?.imageUrl, auction?.imageUrl2, auction?.imageUrl3]
@@ -60,9 +62,9 @@ const AuctionDetailScreen = () => {
   const similarFilters = useMemo(
     () =>
       auction?.category
-        ? { status: 'RUNNING' as const, category: auction.category }
-        : { status: 'RUNNING' as const },
-    [auction?.category]
+        ? { status: 'RUNNING' as const, category: auction.category, city: cityFilter }
+        : { status: 'RUNNING' as const, city: cityFilter },
+    [auction?.category, cityFilter]
   );
   const similarQuery = useAuctions(similarFilters);
 

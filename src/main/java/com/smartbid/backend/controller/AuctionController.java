@@ -55,8 +55,9 @@ public class AuctionController {
             @RequestParam(required = false) Long productId,
             @RequestParam(required = false) AuctionStatus status,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String city,
             @RequestParam(value = "q", required = false) String query) {
-        return ResponseEntity.ok(service.list(productId, status, category, query));
+        return ResponseEntity.ok(service.list(productId, status, category, query, city));
     }
 
     // UPDATE
@@ -80,6 +81,7 @@ public class AuctionController {
             @RequestParam(defaultValue = "createdAt,DESC") String sort,
             @RequestParam(required = false) AuctionStatus status,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String city,
             @RequestParam(value = "q", required = false) String query) {
         String[] s = sort.split(",", 2);
         Sort order = Sort.by(
@@ -87,7 +89,7 @@ public class AuctionController {
                 s[0]
         );
         Pageable pageable = PageRequest.of(page, size, order);
-        return ResponseEntity.ok(service.listPaged(pageable, status, category, query));
+        return ResponseEntity.ok(service.listPaged(pageable, status, category, query, city));
     }
 
     @GetMapping("/participated")

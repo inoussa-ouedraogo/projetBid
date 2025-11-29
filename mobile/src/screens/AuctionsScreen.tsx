@@ -11,18 +11,23 @@ import { LoadingIndicator } from '@/components/feedback/LoadingIndicator';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { RootStackParamList } from '@/navigation/types';
 import { StatusFilter } from '@/components/common/StatusFilter';
+import { useAuctionLocation } from '@/hooks/useAuctionLocation';
+import { LocationScopeToggle } from '@/components/common/LocationScopeToggle';
+import { formatCity } from '@/utils/format';
 
 const STATUS_FILTERS = ['ALL', 'RUNNING', 'SCHEDULED', 'FINISHED', 'CANCELED'] as const;
 type StatusFilterType = (typeof STATUS_FILTERS)[number];
 
 const AuctionsScreen = () => {
   const [status, setStatus] = useState<StatusFilterType>('RUNNING');
+  const { scope, setScope, city, cityFilter } = useAuctionLocation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const pagedFilters = useMemo(
     () => ({
       status: status === 'ALL' ? undefined : (status as AuctionStatus),
+      city: cityFilter,
     }),
-    [status]
+    [status, cityFilter]
   );
   const { data, isLoading, refetch, isRefetching } = usePagedAuctions(pagedFilters);
 
@@ -32,8 +37,11 @@ const AuctionsScreen = () => {
     <>
       <SectionHeader
         title="Toutes les encheres"
-        subtitle="Filtre par statut pour accelerer tes recherches"
+        subtitle={`Filtre par statut • ${
+          scope === 'city' && city ? `Ta ville (${formatCity(city)})` : 'Tout le pays'
+        }`}
       />
+      <LocationScopeToggle city={city} scope={scope} onChange={setScope} />
       <StatusFilter
         statuses={STATUS_FILTERS}
         activeStatus={status}

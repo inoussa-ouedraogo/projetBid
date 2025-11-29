@@ -19,6 +19,8 @@ public class AuctionUpdateRequest {
     private Instant startAt;
     private Instant endAt;
     @Positive private Integer participantLimit;
+    @Size(max = 120) private String city;
+    @Positive private BigDecimal buyNowPrice;
 private AuctionType type;
 
 private Boolean isActive;
@@ -43,12 +45,16 @@ public void setIsActive(Boolean isActive) {
     public void setMinBid(BigDecimal minBid) { this.minBid = minBid; }
     public BigDecimal getMaxBid() { return maxBid; }
     public void setMaxBid(BigDecimal maxBid) { this.maxBid = maxBid; }
+    public BigDecimal getBuyNowPrice() { return buyNowPrice; }
+    public void setBuyNowPrice(BigDecimal buyNowPrice) { this.buyNowPrice = buyNowPrice; }
     public Instant getStartAt() { return startAt; }
     public void setStartAt(Instant startAt) { this.startAt = startAt; }
     public Instant getEndAt() { return endAt; }
     public void setEndAt(Instant endAt) { this.endAt = endAt; }
     public Integer getParticipantLimit() { return participantLimit; }
     public void setParticipantLimit(Integer participantLimit) { this.participantLimit = participantLimit; }
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
 
     public AuctionType getType() {
         return type;

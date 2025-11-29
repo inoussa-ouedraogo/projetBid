@@ -71,6 +71,7 @@ public class AuthController {
             user.setPassword(passwordEncoder.encode(req.getPassword()));
             user.setName(req.getName());
             user.setPhone(req.getPhone());
+            user.setCity(req.getCity());
             user.setRole(User.Role.USER);
             user.setIsVerified(false);
             user.setStatus(true);
@@ -178,6 +179,7 @@ public class AuthController {
                 udb.getEmail(),
                 udb.getName(),
                 udb.getPhone(),
+                udb.getCity(),
                 udb.getRole().name(),
                 udb.getIsVerified(),
                 udb.getWalletBalance(),
@@ -239,6 +241,8 @@ public class AuthController {
             user.setName(req.getName());
         if (req.getPhone() != null && !req.getPhone().isBlank())
             user.setPhone(req.getPhone());
+        if (req.getCity() != null && !req.getCity().isBlank())
+            user.setCity(req.getCity());
         if (req.getPassword() != null && !req.getPassword().isBlank()) {
             if (req.getPassword().length() < 6) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -255,6 +259,7 @@ public class AuthController {
                 user.getEmail(),
                 user.getName(),
                 user.getPhone(),
+                user.getCity(),
                 user.getRole().name(),
                 user.getIsVerified(),
                 user.getWalletBalance(),
@@ -311,6 +316,7 @@ public class AuthController {
         private String password;
         private String name;
         private String phone;
+        private String city;
         private Boolean consentRgpd;
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
@@ -320,6 +326,8 @@ public class AuthController {
         public void setName(String name) { this.name = name; }
         public String getPhone() { return phone; }
         public void setPhone(String phone) { this.phone = phone; }
+        public String getCity() { return city; }
+        public void setCity(String city) { this.city = city; }
         public Boolean getConsentRgpd() { return consentRgpd; }
         public void setConsentRgpd(Boolean consentRgpd) { this.consentRgpd = consentRgpd; }
     }
@@ -349,12 +357,15 @@ public class AuthController {
         private String name;
         private String phone;
         private String password;
+        private String city;
         public String getName() { return name; }
         public void setName(String name) { this.name = name; }
         public String getPhone() { return phone; }
         public void setPhone(String phone) { this.phone = phone; }
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
+        public String getCity() { return city; }
+        public void setCity(String city) { this.city = city; }
     }
 
     public record MeResponse(
@@ -362,6 +373,7 @@ public class AuthController {
             String email,
             String name,
             String phone,
+            String city,
             String role,
             Boolean isVerified,
             java.math.BigDecimal walletBalance,

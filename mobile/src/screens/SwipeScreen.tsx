@@ -11,12 +11,15 @@ import { useTheme } from '@/hooks/useTheme';
 import { LoadingIndicator } from '@/components/feedback/LoadingIndicator';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { RootStackParamList } from '@/navigation/types';
+import { useAuctionLocation } from '@/hooks/useAuctionLocation';
+import { LocationScopeToggle } from '@/components/common/LocationScopeToggle';
 
 const { width } = Dimensions.get('window');
 
 const SwipeScreen = () => {
   const { colors, palette } = useTheme();
-  const { data: running = [], isLoading } = useAuctions({ status: 'RUNNING' });
+  const { scope, setScope, city, cityFilter } = useAuctionLocation();
+  const { data: running = [], isLoading } = useAuctions({ status: 'RUNNING', city: cityFilter });
   const addFavorite = useFavoritesStore((state) => state.add);
   const [ignoredIds, setIgnoredIds] = useState<number[]>([]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -39,6 +42,7 @@ const SwipeScreen = () => {
         <Text style={{ fontSize: 24, fontWeight: '700', color: colors.textPrimary }}>
           Parcours rapide
         </Text>
+        <LocationScopeToggle city={city} scope={scope} onChange={setScope} />
         <Text style={{ color: colors.textSecondary }}>
           Swipe à droite pour ajouter aux favoris, à gauche pour ignorer.
         </Text>

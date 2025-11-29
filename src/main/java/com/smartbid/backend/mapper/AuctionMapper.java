@@ -17,6 +17,7 @@ public class AuctionMapper {
         dto.setId(auction.getId());
         dto.setTitle(auction.getTitle());
         dto.setDescription(auction.getDescription());
+        dto.setCity(auction.getCity());
         dto.setParticipationFee(auction.getParticipationFee());
         dto.setCurrency(auction.getCurrency());
         dto.setMinBid(auction.getMinBid());
@@ -46,6 +47,7 @@ public class AuctionMapper {
         if (product != null) {
             dto.setProductId(product.getId());
             dto.setProductTitle(product.getTitle());
+            dto.setBasePrice(product.getBasePrice());
             dto.setCategory(product.getCategory() != null ? product.getCategory().name() : null);
             dto.setImageUrl(product.getImageUrl());
             dto.setImageUrl2(product.getImageUrl2());

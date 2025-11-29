@@ -13,6 +13,7 @@ public class ProductResponse {
     private String imageUrl;
     private String imageUrl2;
     private String imageUrl3;
+    private BigDecimal commissionRate;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -44,6 +45,8 @@ public class ProductResponse {
 
     public String getImageUrl3() { return imageUrl3; }
     public void setImageUrl3(String imageUrl3) { this.imageUrl3 = imageUrl3; }
+    public BigDecimal getCommissionRate() { return commissionRate; }
+    public void setCommissionRate(BigDecimal commissionRate) { this.commissionRate = commissionRate; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

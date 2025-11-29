@@ -10,17 +10,24 @@ import { useTheme } from '@/hooks/useTheme';
 import { LoadingIndicator } from '@/components/feedback/LoadingIndicator';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { RootStackParamList } from '@/navigation/types';
+import { useAuctionLocation } from '@/hooks/useAuctionLocation';
+import { LocationScopeToggle } from '@/components/common/LocationScopeToggle';
 
 const FavoritesScreen = () => {
   const { colors } = useTheme();
+  const { scope, setScope, city, cityFilter } = useAuctionLocation();
   const favorites = useFavoritesStore((state) => state.favorites);
-  const { data: allAuctions = [], isLoading } = useAuctions();
+  const { data: allAuctions = [], isLoading } = useAuctions({ city: cityFilter });
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const favoriteAuctions = useMemo(
     () => allAuctions.filter((a) => favorites.includes(a.id)),
     [allAuctions, favorites]
   );
+  const emptySubtitle =
+    favorites.length > 0
+      ? 'Aucun favori dans cette zone. Passe sur "Tout le pays" pour les voir.'
+      : 'Ajoute des enchères depuis la liste ou le détail.';
 
   return (
     <Screen>
@@ -28,6 +35,7 @@ const FavoritesScreen = () => {
         <Text style={{ fontSize: 24, fontWeight: '700', color: colors.textPrimary }}>
           Mes favoris
         </Text>
+        <LocationScopeToggle city={city} scope={scope} onChange={setScope} />
         <Text style={{ color: colors.textSecondary }}>
           Retrouve rapidement les enchères que tu as mises de côté pour enchérir plus tard.
         </Text>
@@ -35,7 +43,7 @@ const FavoritesScreen = () => {
         {isLoading ? (
           <LoadingIndicator />
         ) : favoriteAuctions.length === 0 ? (
-          <EmptyState title="Aucun favori" subtitle="Ajoute des enchères depuis la liste ou le détail." />
+          <EmptyState title="Aucun favori" subtitle={emptySubtitle} />
         ) : (
           <ScrollView contentContainerStyle={{ gap: 16, paddingTop: 8 }}>
             {favoriteAuctions.map((auction) => (

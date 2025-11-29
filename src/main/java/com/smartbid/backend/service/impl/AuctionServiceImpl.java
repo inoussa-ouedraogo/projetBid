@@ -23,14 +23,17 @@ import com.smartbid.backend.model.Auction;
 import com.smartbid.backend.model.AuctionStatus;
 import com.smartbid.backend.model.AuctionType;
 import com.smartbid.backend.model.Bid;
+import com.smartbid.backend.model.RevenueEntry;
 import com.smartbid.backend.model.Product;
 import com.smartbid.backend.model.ProductCategory;
 import com.smartbid.backend.model.User;
 import com.smartbid.backend.repository.AuctionRepository;
 import com.smartbid.backend.repository.BidRepository;     // ✅ manquait
 import com.smartbid.backend.repository.ProductRepository;
+import com.smartbid.backend.repository.RevenueEntryRepository;
 import com.smartbid.backend.repository.UserRepository;
 import com.smartbid.backend.service.AuctionService;
+import com.smartbid.backend.service.CommissionService;
 import com.smartbid.backend.service.RankService;
 import com.smartbid.backend.repository.PurchaseRepository;
 
@@ -44,19 +47,25 @@ public class AuctionServiceImpl implements AuctionService {
     private final BidRepository bidRepo;
     private final RankService rankService;
     private final PurchaseRepository purchaseRepository;
+    private final RevenueEntryRepository revenueRepo;
+    private final CommissionService commissionService;
 
     public AuctionServiceImpl(AuctionRepository auctionRepo,
                               ProductRepository productRepo,
                               UserRepository userRepo,
                               BidRepository bidRepo,
                               RankService rankService,
-                              PurchaseRepository purchaseRepository) {
+                              PurchaseRepository purchaseRepository,
+                              RevenueEntryRepository revenueRepo,
+                              CommissionService commissionService) {
         this.auctionRepo = auctionRepo;
         this.productRepo = productRepo;
         this.userRepo = userRepo;
         this.bidRepo = bidRepo;
         this.rankService = rankService;
         this.purchaseRepository = purchaseRepository;
+        this.revenueRepo = revenueRepo;
+        this.commissionService = commissionService;
     }
 
 
@@ -78,10 +87,14 @@ public class AuctionServiceImpl implements AuctionService {
 
         a.setTitle(req.getTitle());
         a.setDescription(req.getDescription());
+        String requestedCity = cleanCityValue(req.getCity());
+        // Par défaut, si non fourni, on reprend la ville du créateur (si disponible)
+        a.setCity(requestedCity != null ? requestedCity : cleanCityValue(creator.getCity()));
         a.setParticipationFee(req.getParticipationFee() != null ? req.getParticipationFee() : BigDecimal.ZERO);
         a.setCurrency(req.getCurrency());
         a.setMinBid(req.getMinBid());
         a.setMaxBid(req.getMaxBid());
+        a.setBuyNowPrice(req.getBuyNowPrice());
         a.setStartAt(req.getStartAt());
         a.setEndAt(req.getEndAt());
         a.setParticipantLimit(req.getParticipantLimit());
@@ -116,11 +129,11 @@ public class AuctionServiceImpl implements AuctionService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AuctionResponse> list(Long productId, AuctionStatus status, String category, String search) {
+    public List<AuctionResponse> list(Long productId, AuctionStatus status, String category, String search, String city) {
         ProductCategory categoryEnum = parseCategory(category);
         String query = buildLikeSearch(search);
         return auctionRepo
-                .search(productId, status, categoryEnum, query)
+                .search(productId, status, categoryEnum, query, normalizeCity(city))
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -138,10 +151,12 @@ public class AuctionServiceImpl implements AuctionService {
         }
         if (req.getTitle() != null) a.setTitle(req.getTitle());
         if (req.getDescription() != null) a.setDescription(req.getDescription());
+        if (req.getCity() != null) a.setCity(cleanCityValue(req.getCity()));
         if (req.getParticipationFee() != null) a.setParticipationFee(req.getParticipationFee());
         if (req.getCurrency() != null) a.setCurrency(req.getCurrency());
         if (req.getMinBid() != null) a.setMinBid(req.getMinBid());
         if (req.getMaxBid() != null) a.setMaxBid(req.getMaxBid());
+        if (req.getBuyNowPrice() != null) a.setBuyNowPrice(req.getBuyNowPrice());
         if (req.getStartAt() != null) a.setStartAt(req.getStartAt());
         if (req.getEndAt() != null) a.setEndAt(req.getEndAt());
         if (req.getParticipantLimit() != null) a.setParticipantLimit(req.getParticipantLimit());
@@ -153,10 +168,10 @@ public class AuctionServiceImpl implements AuctionService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AuctionResponse> listPaged(Pageable pageable, AuctionStatus status, String category, String search) {
+    public Page<AuctionResponse> listPaged(Pageable pageable, AuctionStatus status, String category, String search, String city) {
         ProductCategory categoryEnum = parseCategory(category);
         String query = buildLikeSearch(search);
-        return auctionRepo.searchPaged(status, categoryEnum, query, pageable).map(this::toResponse);
+        return auctionRepo.searchPaged(status, categoryEnum, query, normalizeCity(city), pageable).map(this::toResponse);
     }
 
     @Override
@@ -200,6 +215,7 @@ public class AuctionServiceImpl implements AuctionService {
             BigDecimal winningAmount = candidates.get(0);
             bidRepo.findFirstByAuction_IdAndAmountOrderByCreatedAtAsc(auctionId, winningAmount)
                    .ifPresent(winningBid -> a.setWinnerBidId(winningBid.getId()));
+            recordCommission(a, winningAmount);
         } else {
             a.setWinnerBidId(null);
         }
@@ -321,7 +337,7 @@ public AuctionResponse approve(Long id) {
             throw new IllegalArgumentException("Categorie invalide : " + category);
         }
 
-        return auctionRepo.search(null, null, enumCategory, null)
+        return auctionRepo.search(null, null, enumCategory, null, null)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -345,6 +361,19 @@ public AuctionResponse approve(Long id) {
         return "%" + query.trim().toLowerCase() + "%";
     }
 
+    private String cleanCityValue(String city) {
+        if (city == null) {
+            return null;
+        }
+        String trimmed = city.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeCity(String city) {
+        String cleaned = cleanCityValue(city);
+        return cleaned != null ? cleaned.toLowerCase() : null;
+    }
+
     private AuctionResponse toResponse(Auction a) {
         return toResponse(a, null, null, null);
     }
@@ -356,6 +385,7 @@ public AuctionResponse approve(Long id) {
         if (a.getProduct() != null) {
             r.setProductId(a.getProduct().getId());
             r.setProductTitle(a.getProduct().getTitle());
+            r.setBasePrice(a.getProduct().getBasePrice());
             r.setCategory(a.getProduct().getCategory() != null ? a.getProduct().getCategory().name() : null);
             r.setImageUrl(a.getProduct().getImageUrl());
             r.setImageUrl2(a.getProduct().getImageUrl2());
@@ -364,10 +394,12 @@ public AuctionResponse approve(Long id) {
 
         r.setTitle(a.getTitle());
         r.setDescription(a.getDescription());
+        r.setCity(a.getCity());
         r.setParticipationFee(a.getParticipationFee());
         r.setCurrency(a.getCurrency());
         r.setMinBid(a.getMinBid());
         r.setMaxBid(a.getMaxBid());
+        r.setBuyNowPrice(a.getBuyNowPrice());
         r.setStartAt(a.getStartAt());
         r.setEndAt(a.getEndAt());
         r.setParticipantLimit(a.getParticipantLimit());
@@ -380,6 +412,11 @@ public AuctionResponse approve(Long id) {
 
         if (totalBids != null) {
             r.setTotalBids(totalBids.intValue());
+        }
+        if (revenueRepo != null) {
+            try {
+                r.setRevenueTotal(revenueRepo.sumByAuctionId(a.getId()));
+            } catch (Exception ignored) {}
         }
         if (myBid != null) {
             r.setMyLastBidAmount(myBid.getAmount());
@@ -428,6 +465,21 @@ public AuctionResponse approve(Long id) {
 
         purchaseRepository.save(purchase);
 
+        recordCommission(a, a.getBuyNowPrice() != null ? a.getBuyNowPrice() : a.getProduct().getBasePrice());
+
         return toResponse(a);
+    }
+
+    private void recordCommission(Auction auction, BigDecimal baseAmount) {
+        BigDecimal rate = commissionService.currentRate();
+        if (baseAmount == null || rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        BigDecimal commission = baseAmount.multiply(rate).divide(new BigDecimal("100"));
+        RevenueEntry entry = new RevenueEntry();
+        entry.setType(RevenueEntry.RevenueType.COMMISSION);
+        entry.setAmount(commission);
+        entry.setAuctionId(auction.getId());
+        revenueRepo.save(entry);
     }
 }

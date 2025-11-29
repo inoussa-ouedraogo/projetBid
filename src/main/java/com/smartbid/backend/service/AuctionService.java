@@ -14,10 +14,10 @@ import com.smartbid.backend.model.AuctionStatus;
 public interface AuctionService {
     AuctionResponse create(AuctionCreateRequest req);
     AuctionResponse getById(Long id);
-    List<AuctionResponse> list(Long productId, AuctionStatus status, String category, String search);
+    List<AuctionResponse> list(Long productId, AuctionStatus status, String category, String search, String city);
     AuctionResponse update(Long id, AuctionUpdateRequest req);
     void delete(Long id);
-    Page<AuctionResponse> listPaged(Pageable pageable, AuctionStatus status, String category, String search);
+    Page<AuctionResponse> listPaged(Pageable pageable, AuctionStatus status, String category, String search, String city);
     AuctionResponse closeAndPickWinner(Long auctionId);
     AuctionResponse startNow(Long auctionId);
     AuctionResponse startAuction(Long id);
