@@ -34,6 +34,7 @@ import com.smartbid.backend.repository.RevenueEntryRepository;
 import com.smartbid.backend.repository.UserRepository;
 import com.smartbid.backend.service.AuctionService;
 import com.smartbid.backend.service.CommissionService;
+import com.smartbid.backend.service.MailService;
 import com.smartbid.backend.service.RankService;
 import com.smartbid.backend.repository.PurchaseRepository;
 
@@ -49,6 +50,7 @@ public class AuctionServiceImpl implements AuctionService {
     private final PurchaseRepository purchaseRepository;
     private final RevenueEntryRepository revenueRepo;
     private final CommissionService commissionService;
+    private final MailService mailService;
 
     public AuctionServiceImpl(AuctionRepository auctionRepo,
                               ProductRepository productRepo,
@@ -57,7 +59,8 @@ public class AuctionServiceImpl implements AuctionService {
                               RankService rankService,
                               PurchaseRepository purchaseRepository,
                               RevenueEntryRepository revenueRepo,
-                              CommissionService commissionService) {
+                              CommissionService commissionService,
+                              MailService mailService) {
         this.auctionRepo = auctionRepo;
         this.productRepo = productRepo;
         this.userRepo = userRepo;
@@ -66,6 +69,7 @@ public class AuctionServiceImpl implements AuctionService {
         this.purchaseRepository = purchaseRepository;
         this.revenueRepo = revenueRepo;
         this.commissionService = commissionService;
+        this.mailService = mailService;
     }
 
 
@@ -214,7 +218,10 @@ public class AuctionServiceImpl implements AuctionService {
         if (!candidates.isEmpty()) {
             BigDecimal winningAmount = candidates.get(0);
             bidRepo.findFirstByAuction_IdAndAmountOrderByCreatedAtAsc(auctionId, winningAmount)
-                   .ifPresent(winningBid -> a.setWinnerBidId(winningBid.getId()));
+                   .ifPresent(winningBid -> {
+                       a.setWinnerBidId(winningBid.getId());
+                       sendWinnerEmail(winningBid.getUser().getEmail(), a.getTitle(), winningAmount, a.getId());
+                   });
             recordCommission(a, winningAmount);
         } else {
             a.setWinnerBidId(null);
@@ -413,6 +420,14 @@ public AuctionResponse approve(Long id) {
         if (totalBids != null) {
             r.setTotalBids(totalBids.intValue());
         }
+        if (r.getTotalBids() == null) {
+            long count = bidRepo.countByAuction_Id(a.getId());
+            r.setTotalBids((int) count);
+        }
+        try {
+            long distinctUsers = bidRepo.countDistinctUsersByAuctionId(a.getId());
+            r.setParticipantCount((int) distinctUsers);
+        } catch (Exception ignored) {}
         if (revenueRepo != null) {
             try {
                 r.setRevenueTotal(revenueRepo.sumByAuctionId(a.getId()));
@@ -481,5 +496,12 @@ public AuctionResponse approve(Long id) {
         entry.setAmount(commission);
         entry.setAuctionId(auction.getId());
         revenueRepo.save(entry);
+    }
+
+    private void sendWinnerEmail(String email, String auctionTitle, BigDecimal amount, Long auctionId) {
+        if (email == null || email.isBlank()) return;
+        String subject = "Félicitations, tu as gagné l'enchère #" + auctionId;
+        String body = "Tu as remporté l'enchère \"" + auctionTitle + "\" avec une mise de " + amount + ".";
+        mailService.send(email, subject, body);
     }
 }

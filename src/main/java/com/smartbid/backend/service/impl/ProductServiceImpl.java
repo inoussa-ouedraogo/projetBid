@@ -177,6 +177,36 @@ public class ProductServiceImpl implements ProductService {
         return toResponse(saved);
     }
 
+    @Override
+    public ProductResponse deleteImageSlot(Long id, int slot) {
+        Product product = productRepo.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Product not found"));
+
+        String current;
+        if (slot == 2) {
+            current = product.getImageUrl2();
+            product.setImageUrl2(null);
+        } else if (slot == 3) {
+            current = product.getImageUrl3();
+            product.setImageUrl3(null);
+        } else {
+            current = product.getImageUrl();
+            product.setImageUrl(null);
+        }
+
+        // Delete physical file if it's in /uploads
+        if (current != null && current.startsWith("/uploads/")) {
+            try {
+                java.nio.file.Path uploadDir = java.nio.file.Paths.get(System.getProperty("user.dir"), "uploads");
+                java.nio.file.Path target = uploadDir.resolve(java.nio.file.Paths.get(current).getFileName());
+                java.nio.file.Files.deleteIfExists(target);
+            } catch (Exception ignored) {}
+        }
+
+        Product saved = productRepo.save(product);
+        return toResponse(saved);
+    }
+
     // === Mapper ===
     private ProductResponse toResponse(Product p) {
         ProductResponse r = new ProductResponse();

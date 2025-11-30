@@ -26,6 +26,7 @@ public class AuctionMapper {
         dto.setEndAt(auction.getEndAt());
         dto.setParticipantLimit(auction.getParticipantLimit());
         dto.setStatus(auction.getStatus());
+        // participantCount remains to be filled by service
         
         // ✅ Correction ici : utilise getWinnerBidId() au lieu de getWinnerBid()
         dto.setWinnerBidId(auction.getWinnerBidId());

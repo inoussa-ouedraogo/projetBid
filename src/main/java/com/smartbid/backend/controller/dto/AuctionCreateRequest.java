@@ -34,7 +34,7 @@ public class AuctionCreateRequest {
 
     @NotBlank
     @Size(min = 3, max = 3)
-    private String currency = "EUR";
+    private String currency = "XOF";
 
     @NotNull @Positive
     private BigDecimal minBid;

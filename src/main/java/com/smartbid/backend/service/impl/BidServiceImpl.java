@@ -25,6 +25,7 @@ import com.smartbid.backend.repository.BidRepository;
 import com.smartbid.backend.repository.RevenueEntryRepository;
 import com.smartbid.backend.repository.UserRepository;
 import com.smartbid.backend.service.BidService;
+import com.smartbid.backend.service.AuctionService;
 import com.smartbid.backend.service.RankService;
 
 @Service
@@ -36,17 +37,20 @@ public class BidServiceImpl implements BidService {
     private final UserRepository userRepo;
     private final RankService rankService; // ✅ AJOUT
     private final RevenueEntryRepository revenueRepo;
+    private final AuctionService auctionService;
 
     public BidServiceImpl(BidRepository bidRepo,
                           AuctionRepository auctionRepo,
                           UserRepository userRepo,
                           RankService rankService,
-                          RevenueEntryRepository revenueRepo) {      // ✅ AJOUT
+                          RevenueEntryRepository revenueRepo,
+                          AuctionService auctionService) {      // ✅ AJOUT
         this.bidRepo = bidRepo;
         this.auctionRepo = auctionRepo;
         this.userRepo = userRepo;
         this.rankService = rankService;                  // ✅ AJOUT
         this.revenueRepo = revenueRepo;
+        this.auctionService = auctionService;
     }
 
     @Override
@@ -107,6 +111,15 @@ rankService.pushRankUpdate(auctionId, user.getId());
 // bonus: on peut aussi pousser au même user après chaque bid d'un autre joueur
 // pour "quasi-instantané" côté client, tu peux :
 rankService.pushRankUpdate(auctionId, user.getId());
+
+        // Fermeture anticipée si limite de participants atteinte
+        if (a.getParticipantLimit() != null && a.getParticipantLimit() > 0) {
+            long participants = bidRepo.countByAuction_Id(auctionId);
+            if (participants >= a.getParticipantLimit()) {
+                // On clôture et choisit le gagnant
+                auctionService.closeAndPickWinner(auctionId);
+            }
+        }
         return toResponse(saved);
     }
 

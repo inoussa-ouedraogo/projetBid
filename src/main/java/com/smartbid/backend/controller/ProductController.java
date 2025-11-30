@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 import com.smartbid.backend.controller.dto.ProductCreateRequest;
 import com.smartbid.backend.controller.dto.ProductResponse;
@@ -119,5 +120,12 @@ public class ProductController {
         System.out.println("CHEMIN UPLOAD UTILISE : " + uploadDir.toAbsolutePath());
 
         return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/{id}/image")
+    public ResponseEntity<ProductResponse> deleteImage(
+            @PathVariable Long id,
+            @RequestParam(name = "slot", defaultValue = "1") int slot) {
+        return ResponseEntity.ok(service.deleteImageSlot(id, slot));
     }
 }

@@ -531,7 +531,7 @@ async function apiFetchForm(path, formData, opts = {}) {
   return res;
 }
 
-function fmtMoney(v, currency = 'EUR') {
+function fmtMoney(v, currency = 'XOF') {
   try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(v)); }
   catch (_) { return String(v); }
 }
@@ -540,6 +540,38 @@ function elFromHTML(html) {
   const t = document.createElement('template');
   t.innerHTML = html.trim();
   return t.content.firstChild;
+}
+
+// Image compression helper (client-side) to avoid large uploads
+async function shrinkImage(file, maxDim = 1600, quality = 0.72) {
+  if (!file || !(file instanceof File) || !file.type.startsWith('image/')) return file;
+  // If already reasonable size (<2.5MB), skip
+  if (file.size <= 2.5 * 1024 * 1024) return file;
+
+  const imgDataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const img = await new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = imgDataUrl;
+  });
+
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+  if (!blob) return file;
+  return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
 }
 
 // ---------- Products ----------
@@ -680,6 +712,28 @@ async function ViewProducts() {
       h('input', { id: img3Id, placeholder: '', value: existing?.imageUrl3 ?? '', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
       h('label', { for: file3Id }, 'Upload image (slot 3)'),
       h('input', { id: file3Id, type: 'file', accept: 'image/*' }),
+      existing?.id ? h('div', { style: 'margin-top:10px;display:flex;flex-direction:column;gap:6px;' }, [
+        h('div', { class: 'muted', style: 'font-size:12px;' }, 'Images existantes'),
+        ...(function() {
+          const rows = [];
+          const slots = [
+            { slot: 1, url: existing.imageUrl, label: 'Slot 1' },
+            { slot: 2, url: existing.imageUrl2, label: 'Slot 2' },
+            { slot: 3, url: existing.imageUrl3, label: 'Slot 3' },
+          ];
+          slots.forEach(s => {
+            if (!s.url) return;
+            rows.push(
+              h('div', { style: 'display:flex;align-items:center;gap:10px;' }, [
+                h('span', { style: 'color:var(--muted);font-size:12px;' }, s.label),
+                h('img', { src: s.url, alt: s.label, style: 'height:36px;width:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);' }),
+                h('button', { class: 'btn outline btn-del-img', type: 'button', 'data-slot': s.slot }, 'Supprimer')
+              ])
+            );
+          });
+          return rows.length ? rows : [h('div', { class: 'muted', style: 'font-size:12px;' }, 'Aucune image enregistrée')];
+        })()
+      ]) : null,
       h('div', { style: 'display:flex;gap:8px;margin-top:10px;' }, [
         h('button', { class: 'btn', type: 'submit' }, isEdit ? 'Save' : 'Create'),
         h('button', { class: 'btn outline', type: 'button', onclick: () => { wrap.classList.add('hidden'); wrap.innerHTML = ''; } }, 'Cancel')
@@ -696,8 +750,9 @@ async function ViewProducts() {
       ];
       for (const up of uploads) {
         if (!up.file) continue;
+        const compressed = await shrinkImage(up.file);
         const fd = new FormData();
-        fd.append('file', up.file);
+        fd.append('file', compressed);
         try {
           const res = await apiFetchForm(`/api/products/${productId}/image?slot=${up.slot}`, fd, { method: 'POST' });
           if (!res.ok) {
@@ -740,6 +795,28 @@ async function ViewProducts() {
         btn.disabled = false;
       }
     });
+
+    // delete image buttons (edit mode)
+    if (existing?.id) {
+      form.querySelectorAll('.btn-del-img').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const slot = btn.dataset.slot;
+          if (!slot) return;
+          btn.disabled = true;
+          try {
+            const res = await apiFetch(`/api/products/${existing.id}/image?slot=${slot}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error(await res.text());
+            wrap.classList.add('hidden');
+            wrap.innerHTML = '';
+            await loadProducts();
+          } catch (err) {
+            alert(err.message || 'Suppression impossible');
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
+    }
   }
 
   async function editProduct(id) {
@@ -835,6 +912,8 @@ async function ViewAuctions() {
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Product</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Base Price</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Revenue</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Offres (actuel/limite)</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Participants</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Min/Max</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Start/End</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Actions</th>
@@ -882,6 +961,8 @@ async function ViewAuctions() {
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${fmtMoney(a.basePrice || 0, a.currency || 'XOF')}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${fmtMoney(a.revenueTotal || 0, a.currency || 'XOF')}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.totalBids ?? 0}/${a.participantLimit ?? '-'}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.participantCount ?? 0}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.minBid ?? ''} / ${a.maxBid ?? ''} ${a.currency ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${start} → ${end}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;">
@@ -935,7 +1016,7 @@ async function ViewAuctions() {
       h('label', { for: maxId }, 'Max Bid'),
       h('input', { id: maxId, type: 'number', step: '0.01', required: true, value: existing?.maxBid ?? '', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
       h('label', { for: curId }, 'Currency (3 letters)'),
-      h('input', { id: curId, maxlength: 3, value: existing?.currency ?? 'EUR', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
+      h('input', { id: curId, maxlength: 3, value: existing?.currency ?? 'XOF', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
       h('label', { for: startId }, 'Start At'),
       h('input', { id: startId, type: 'datetime-local', required: true }),
       h('label', { for: endId }, 'End At'),
@@ -962,7 +1043,7 @@ async function ViewAuctions() {
         city: (document.getElementById(cityId).value || '').trim() || undefined,
         minBid: Number(document.getElementById(minId).value),
         maxBid: Number(document.getElementById(maxId).value),
-        currency: (document.getElementById(curId).value.trim() || 'EUR').toUpperCase(),
+        currency: (document.getElementById(curId).value.trim() || 'XOF').toUpperCase(),
         startAt: new Date(document.getElementById(startId).value).toISOString(),
         endAt: new Date(document.getElementById(endId).value).toISOString(),
         participantLimit: Number(document.getElementById(limitId).value) || undefined
@@ -1538,6 +1619,8 @@ async function ViewAuctions2() {
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Product</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Base Price</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Revenue</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Offres (actuel/limite)</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Participants</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Min/Max</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Start/End</th>
           <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border);">Active</th>
@@ -1616,6 +1699,8 @@ async function ViewAuctions2() {
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.productId ?? ''} · ${a.productTitle ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${fmtMoney(a.basePrice || 0, a.currency || 'XOF')}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${fmtMoney(a.revenueTotal || 0, a.currency || 'XOF')}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.totalBids ?? 0}/${a.participantLimit ?? '-'}</td>
+        <td style="padding:8px;border-bottom:1px solid var(--border);">${a.participantCount ?? 0}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.minBid ?? ''} / ${a.maxBid ?? ''} ${a.currency ?? ''}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${start} → ${end}</td>
         <td style="padding:8px;border-bottom:1px solid var(--border);">${a.isActive ? 'YES' : 'NO'}</td>
@@ -1687,7 +1772,7 @@ async function ViewAuctions2() {
       h('label', { for: maxId }, 'Max Bid'),
       h('input', { id: maxId, type: 'number', step: '0.01', required: true, value: existing?.maxBid ?? '', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
       h('label', { for: curId }, 'Currency (3 letters)'),
-      h('input', { id: curId, maxlength: 3, value: existing?.currency ?? 'EUR', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
+      h('input', { id: curId, maxlength: 3, value: existing?.currency ?? 'XOF', style: 'padding:8px;border-radius:8px;border:1px solid var(--border);background:#0b1220;color:var(--text);' }),
       h('label', { for: startId }, 'Start At'),
       h('input', { id: startId, type: 'datetime-local', required: true }),
       h('label', { for: endId }, 'End At'),
@@ -1740,7 +1825,7 @@ async function ViewAuctions2() {
         city: (document.getElementById(cityId).value || '').trim() || undefined,
         minBid: Number(document.getElementById(minId).value),
         maxBid: Number(document.getElementById(maxId).value),
-        currency: (document.getElementById(curId).value.trim() || 'EUR').toUpperCase(),
+        currency: (document.getElementById(curId).value.trim() || 'XOF').toUpperCase(),
         startAt: new Date(document.getElementById(startId).value).toISOString(),
         endAt: new Date(document.getElementById(endId).value).toISOString(),
         participantLimit: Number(document.getElementById(limitId).value) || undefined

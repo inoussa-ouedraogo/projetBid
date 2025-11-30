@@ -67,7 +67,7 @@ private Product product;
     @NotBlank
     @Size(min = 3, max = 3)
     @Column(length = 3, nullable = false)
-    private String currency = "CFA";
+    private String currency = "XOF";
 
     @Positive(message = "minBid must be > 0")
     @Column(name = "min_bid", precision = 15, scale = 2, nullable = false)

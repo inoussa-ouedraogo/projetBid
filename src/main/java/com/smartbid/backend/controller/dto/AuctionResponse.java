@@ -34,6 +34,7 @@ public class AuctionResponse {
     private Instant startAt;
     private Instant endAt;
     private Integer participantLimit;
+    private Integer participantCount;
 
     private String status;
 
@@ -114,6 +115,8 @@ public class AuctionResponse {
 
     public Integer getParticipantLimit() { return participantLimit; }
     public void setParticipantLimit(Integer participantLimit) { this.participantLimit = participantLimit; }
+    public Integer getParticipantCount() { return participantCount; }
+    public void setParticipantCount(Integer participantCount) { this.participantCount = participantCount; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
